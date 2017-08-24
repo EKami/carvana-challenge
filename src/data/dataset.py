@@ -1,3 +1,4 @@
+import torch.utils.data as data
 from kaggle_data.downloader import KaggleDataDownloader
 from sklearn.model_selection import train_test_split
 import PIL
@@ -5,11 +6,10 @@ from PIL import Image
 import pandas as pd
 import numpy as np
 import cv2
-import img.augmentation as aug
 import os
 
 
-class DatasetHandler:
+class DatasetTools:
 
     def __init__(self):
         self.train_data = None
@@ -81,70 +81,7 @@ class DatasetHandler:
         img = Image.open(image_path)
         return np.asarray(img, dtype=np.uint8)
 
-    def get_train_generator(self, X_train, y_train_masks, img_resize, batch_size, is_validation_set=False):
-        """
-        Returns a batch generator which transforms chunk of raw images into numpy matrices
-        and then "yield" them for the classifier.
-        :param is_validation_set: boolean
-            Specify if the data are from a train or validation set
-        :param img_resize: tuple
-            Image resize
-        :param y_train_masks: list
-            List of path to the masks files
-        :param X_train: list
-            List of paths to the train files
-        :param batch_size: int
-            The batch size
-        :return: generator
-            The batch generator
-        """
-        assert len(X_train) == len(y_train_masks)
-        loop_range = len(X_train)
-        while True:
-            for i in range(loop_range):
-                start_offset = batch_size * i
-
-                # The last remaining files could be smaller than the batch_size
-                range_offset = min(batch_size, loop_range - start_offset)
-
-                # If we reached the end of the list then we break the loop
-                if range_offset <= 0:
-                    break
-
-                batch_images = np.zeros((range_offset, *img_resize, 3), np.float32)
-                batch_masks = np.zeros((range_offset, *img_resize, 1), np.float32)   # GreyScale
-
-                for j in range(range_offset):
-                    img = Image.open(X_train[start_offset + j])
-                    img = img.resize(img_resize, Image.ANTIALIAS)
-                    # Pillow reads gifs
-                    mask = Image.open(y_train_masks[start_offset + j])
-                    mask = mask.resize(img_resize, Image.ANTIALIAS)
-
-                    img = np.asarray(img.convert("RGB"), dtype=np.float32)
-                    mask = np.asarray(mask.convert("L"), dtype=np.float32)  # GreyScale
-
-                    if not is_validation_set:
-                        img = aug.randomHueSaturationValue(img,
-                                                           hue_shift_limit=(-50, 50),
-                                                           sat_shift_limit=(-5, 5),
-                                                           val_shift_limit=(-15, 15))
-                        img, mask = aug.randomShiftScaleRotate(img, mask,
-                                                               shift_limit=(-0.0625, 0.0625),
-                                                               scale_limit=(-0.1, 0.1),
-                                                               rotate_limit=(-0, 0))
-                        img, mask = aug.randomHorizontalFlip(img, mask)
-
-                    mask = np.expand_dims(mask, axis=2)
-
-                    batch_images[j] = img
-                    batch_masks[j] = mask
-
-                batch_images /= 255
-                batch_masks /= 255
-                yield batch_images, batch_masks
-
-    def split_train_valid(self, validation_size=0.2, sample_size=None):
+    def get_train_valid_split(self, validation_size=0.2, sample_size=None):
         """
 
         :param sample_size: int
@@ -179,3 +116,57 @@ class DatasetHandler:
         return [np.array(train_ret).ravel(), np.array(train_masks_ret).ravel(),
                 np.array(valid_ret).ravel(), np.array(valid_masks_ret).ravel()]
 
+
+# Reference: https://github.com/pytorch/vision/blob/master/torchvision/datasets/folder.py#L66
+class ImageDataset(data.Dataset):
+    def __init__(self, X_data, y_data, img_resize, X_transform=None, y_transform=None):
+        """
+            A dataset loader taking RGB images as
+            Args:
+                X_data (list): List of paths to the training images
+                y_data (list): List of paths to the target images
+                X_transform (callable, optional): A function/transform that takes in 2 numpy arrays
+                    (train_img, mask_img) and returns a transformed version with the same signature
+                y_transform (callable, optional): A function/transform that takes in 2 numpy arrays
+                    (train_img, mask_img) and returns a transformed version with the same signature
+             Attributes:
+                classes (list): List of the class names.
+                class_to_idx (dict): Dict with items (class_name, class_index).
+                imgs (list): List of (image path, class_index) tuples
+        """
+        self.X_train = X_data
+        self.y_train_masks = y_data
+        self.img_resize = img_resize
+        self.y_transform = y_transform
+        self.X_transform = X_transform
+
+    def __getitem__(self, index):
+        """
+        Args:
+            index (int): Index
+        Returns:
+            tuple: (image, target) where target is class_index of the target class.
+        """
+        img = Image.open(self.X_train[index])
+        img = img.resize(self.img_resize, Image.ANTIALIAS)
+        # Pillow reads gifs
+        mask = Image.open(self.y_train_masks[index])
+        mask = mask.resize(self.img_resize, Image.ANTIALIAS)
+
+        img = np.asarray(img.convert("RGB"), dtype=np.float32)
+        mask = np.asarray(mask.convert("L"), dtype=np.float32)  # GreyScale
+
+        if self.X_transform:
+            img, mask = self.X_transform(img, mask)
+
+        if self.y_transform:
+            img, mask = self.y_transform(img, mask)
+
+        mask = np.expand_dims(mask, axis=2)
+        img /= 255
+        mask /= 255
+        return img, mask
+
+    def __len__(self):
+        assert len(self.X_train) == len(self.y_train_masks)
+        return len(self.X_train)

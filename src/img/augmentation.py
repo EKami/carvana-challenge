@@ -65,3 +65,16 @@ def randomHorizontalFlip(image, mask, u=0.5):
         mask = cv2.flip(mask, 1)
 
     return image, mask
+
+
+def data_transformator(img, mask):
+    img = randomHueSaturationValue(img,
+                                   hue_shift_limit=(-50, 50),
+                                   sat_shift_limit=(-5, 5),
+                                   val_shift_limit=(-15, 15))
+    img, mask = randomShiftScaleRotate(img, mask,
+                                       shift_limit=(-0.0625, 0.0625),
+                                       scale_limit=(-0.1, 0.1),
+                                       rotate_limit=(-0, 0))
+    img, mask = randomHorizontalFlip(img, mask)
+    return img, mask

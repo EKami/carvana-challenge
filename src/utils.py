@@ -1,6 +1,7 @@
 import numpy as np
 
 
+# TODO remove numpy usage and use Pytorch on the GPU
 def rle(img):
     """
     Encore an image to the Run-length encoding format for
@@ -26,3 +27,4 @@ def rle(img):
 
 def rle_to_string(runs):
     return ' '.join(str(x) for x in runs)
+

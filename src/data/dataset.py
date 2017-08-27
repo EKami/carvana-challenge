@@ -1,11 +1,11 @@
 import torch.utils.data as data
 from kaggle_data.downloader import KaggleDataDownloader
 from sklearn.model_selection import train_test_split
+import img.transformer as transformer
 import PIL
 from PIL import Image
 import pandas as pd
 import numpy as np
-import cv2
 import os
 
 
@@ -119,12 +119,12 @@ class DatasetTools:
 
 # Reference: https://github.com/pytorch/vision/blob/master/torchvision/datasets/folder.py#L66
 class ImageDataset(data.Dataset):
-    def __init__(self, X_data, y_data, img_resize, X_transform=None, y_transform=None):
+    def __init__(self, X_data, y_data=None, img_resize=(128, 128), X_transform=None, y_transform=None):
         """
             A dataset loader taking RGB images as
             Args:
                 X_data (list): List of paths to the training images
-                y_data (list): List of paths to the target images
+                y_data (list, optional): List of paths to the target images
                 X_transform (callable, optional): A function/transform that takes in 2 numpy arrays
                     (train_img, mask_img) and returns a transformed version with the same signature
                 y_transform (callable, optional): A function/transform that takes in 2 numpy arrays
@@ -162,9 +162,8 @@ class ImageDataset(data.Dataset):
         if self.y_transform:
             img, mask = self.y_transform(img, mask)
 
-        mask = np.expand_dims(mask, axis=2)
-        img /= 255
-        mask /= 255
+        img = transformer.image_to_tensor(img)
+        mask = transformer.mask_to_tensor(mask)
         return img, mask
 
     def __len__(self):

@@ -14,7 +14,7 @@ def make_conv_bn_relu(in_channels, out_channels, kernel_size=3, stride=1, paddin
 class UNet128(nn.Module):
     def __init__(self, in_shape, num_classes):
         super(UNet128, self).__init__()
-        height, width, in_channels = in_shape
+        in_channels, height, width = in_shape
 
         # 128
         self.down1 = nn.Sequential(

@@ -1,5 +1,3 @@
-
-
 # net ------------------------------------
 # https://github.com/pytorch/examples/blob/master/imagenet/main.py ###############
 def adjust_learning_rate(optimizer, lr):

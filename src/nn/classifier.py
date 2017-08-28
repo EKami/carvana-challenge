@@ -37,7 +37,7 @@ class CarvanaClassifier:
                 images = images.cuda()
                 target = target.cuda()
 
-            images = Variable(images, volatile=True)
+            images = Variable(images, volatile=True)  # Why volatile?
             target = Variable(target, volatile=True)
             batch_size = images.size(0)
 
@@ -66,12 +66,11 @@ class CarvanaClassifier:
 
         return losses.avg, accuracies.avg
 
-    def _train_epoch(self, epoch_id, optimizer, threshold, it_smooth, it_print):
+    def _train_epoch(self, epoch_id, optimizer, threshold, it_print):
 
-        # TODO Replace these by tools.AverageMeter()
-        sum_smooth_loss = 0.0
-        sum_smooth_acc = 0.0
-        sum = 0
+        losses = tools.AverageMeter()
+        accuracies = tools.AverageMeter()
+
         num_its = len(self.train_loader)
         for ind, (inputs, target) in enumerate(self.train_loader, 0):
 
@@ -94,23 +93,14 @@ class CarvanaClassifier:
             # print statistics
             acc = losses_utils.dice_loss(pred, target)
             lr = tools.get_learning_rate(optimizer)[0]
+            batch_size = inputs.size(0)
 
-            sum_smooth_loss += loss.data[0]
-            sum_smooth_acc += acc.data[0]
-            sum += 1
-
-            if ind % it_smooth == 0:
-                smooth_loss = sum_smooth_loss / sum
-                smooth_acc = sum_smooth_acc / sum
-                sum_smooth_loss = 0.0
-                sum_smooth_acc = 0.0
-                sum = 0
+            losses.update(loss.data[0], batch_size)
+            accuracies.update(acc.data[0], batch_size)
 
             if ind % it_print == 0 or ind == num_its - 1:
-                train_acc = acc.data[0]
-                train_loss = loss.data[0]
                 print("Epochs {}, batch = {}, train_loss= {}, train_acc = {}, "
-                      .format(epoch_id, ind, train_loss, train_acc))
+                      .format(epoch_id, ind, losses.avg, accuracies.avg))
                 # print('\r%5.1f   %5d    %0.4f   |  %0.4f  %0.4f | %0.4f  %6.4f | ... ' %
                 #       (epoch + (ind + 1) / num_its, ind + 1, lr, smooth_loss, smooth_acc, train_loss, train_acc),
                 #       end='', flush=True)
@@ -121,18 +111,12 @@ class CarvanaClassifier:
             self.net.cuda()
         optimizer = optim.SGD(self.net.parameters(), lr=0.01, momentum=0.9, weight_decay=0.0005)
 
-        smooth_loss = 0.0
-        smooth_acc = 0.0
-        train_loss = np.nan
-        train_acc = np.nan
         it_print = 1
-        it_smooth = 20
-
         for epoch_id, epoch in enumerate(range(epochs)):
             self.net.train()
 
             # Run a train pass on the current epoch
-            self._train_epoch(epoch_id, optimizer, threshold, it_smooth, it_print)
+            self._train_epoch(epoch_id, optimizer, threshold, it_print)
 
             # switch to evaluate mode
             self.net.eval()

@@ -2,9 +2,7 @@ import torch.utils.data as data
 from kaggle_data.downloader import KaggleDataDownloader
 from sklearn.model_selection import train_test_split
 import img.transformer as transformer
-import PIL
 from PIL import Image
-import pandas as pd
 import numpy as np
 import os
 
@@ -29,7 +27,8 @@ class DatasetTools:
         """
         competition_name = "carvana-image-masking-challenge"
 
-        destination_path = "../input/"
+        script_dir = os.path.dirname(__file__)
+        destination_path = os.path.join(script_dir, '../input/')
         files = ["train.zip", "test.zip", "metadata.csv.zip", "train_masks.csv.zip", "train_masks.zip"]
         datasets_path = ["../input/train", "../input/test", "../input/metadata.csv", "../input/train_masks.csv",
                         "../input/train_masks"]
@@ -94,11 +93,13 @@ class DatasetTools:
             [train_data, train_masks_data, valid_data, valid_masks_data]
         """
         train_ids = self.train_ids
-        if sample_size:
-            pass
-            # TODO finish sample size
 
-        ids_train_split, ids_valid_split = train_test_split(self.train_ids, test_size=validation_size)
+        # Each id has 16 images but well...
+        if sample_size:
+            rnd = np.random.choice(self.train_ids, int(len(self.train_ids) * sample_size))
+            train_ids = rnd.ravel()
+
+        ids_train_split, ids_valid_split = train_test_split(train_ids, test_size=validation_size)
 
         train_ret = []
         train_masks_ret = []
@@ -116,23 +117,36 @@ class DatasetTools:
         return [np.array(train_ret).ravel(), np.array(train_masks_ret).ravel(),
                 np.array(valid_ret).ravel(), np.array(valid_masks_ret).ravel()]
 
+    def get_test_files(self, sample_size):
+        test_files = self.test_files
+
+        if sample_size:
+            rnd = np.random.choice(self.test_files, int(len(self.test_files) * sample_size))
+            test_files = rnd.ravel()
+
+        ret = [None] * len(test_files)
+        for i, file in enumerate(test_files):
+            ret[i] = self.test_data + "/" + file
+
+        return np.array(ret)
+
 
 # Reference: https://github.com/pytorch/vision/blob/master/torchvision/datasets/folder.py#L66
-class ImageDataset(data.Dataset):
-    def __init__(self, X_data, y_data=None, img_resize=(128, 128), X_transform=None, y_transform=None):
+class TrainImageDataset(data.Dataset):
+    def __init__(self, X_data, y_data=None, img_resize=(128, 128),
+                 X_transform=None, y_transform=None):
         """
             A dataset loader taking RGB images as
             Args:
                 X_data (list): List of paths to the training images
                 y_data (list, optional): List of paths to the target images
-                X_transform (callable, optional): A function/transform that takes in 2 numpy arrays
+                img_resize (tuple): Tuple containing the new size of the images
+                X_transform (callable, optional): A function/transform that takes in 2 numpy arrays.
+                    Assumes X_data and y_data are not None.
                     (train_img, mask_img) and returns a transformed version with the same signature
-                y_transform (callable, optional): A function/transform that takes in 2 numpy arrays
+                y_transform (callable, optional): A function/transform that takes in 2 numpy arrays.
+                    Assumes X_data and y_data are not None.
                     (train_img, mask_img) and returns a transformed version with the same signature
-             Attributes:
-                classes (list): List of the class names.
-                class_to_idx (dict): Dict with items (class_name, class_index).
-                imgs (list): List of (image path, class_index) tuples
         """
         self.X_train = X_data
         self.y_train_masks = y_data
@@ -149,11 +163,11 @@ class ImageDataset(data.Dataset):
         """
         img = Image.open(self.X_train[index])
         img = img.resize(self.img_resize, Image.ANTIALIAS)
+        img = np.asarray(img.convert("RGB"), dtype=np.float32)
+
         # Pillow reads gifs
         mask = Image.open(self.y_train_masks[index])
         mask = mask.resize(self.img_resize, Image.ANTIALIAS)
-
-        img = np.asarray(img.convert("RGB"), dtype=np.float32)
         mask = np.asarray(mask.convert("L"), dtype=np.float32)  # GreyScale
 
         if self.X_transform:
@@ -168,4 +182,34 @@ class ImageDataset(data.Dataset):
 
     def __len__(self):
         assert len(self.X_train) == len(self.y_train_masks)
+        return len(self.X_train)
+
+
+class TestImageDataset(data.Dataset):
+    def __init__(self, X_data, img_resize=(128, 128)):
+        """
+            A dataset loader taking RGB images as
+            Args:
+                X_data (list): List of paths to the training images
+                img_resize (tuple): Tuple containing the new size of the images
+        """
+        self.img_resize = img_resize
+        self.X_train = X_data
+
+    def __getitem__(self, index):
+        """
+        Args:
+            index (int): Index
+        Returns:
+            tuple: (image, target) where target is class_index of the target class.
+        """
+        img_path = self.X_train[index]
+        img = Image.open(img_path)
+        img = img.resize(self.img_resize, Image.ANTIALIAS)
+        img = np.asarray(img.convert("RGB"), dtype=np.float32)
+
+        img = transformer.image_to_tensor(img)
+        return img, img_path.split("/")[-1]
+
+    def __len__(self):
         return len(self.X_train)

@@ -89,22 +89,21 @@ class UNet128(nn.Module):
 
         out = self.same(out)
 
-        out = F.upsample_bilinear(out, scale_factor=2)  # 16
+        out = F.upsample(out, scale_factor=2)  # 16
         out = torch.cat([down4, out], 1)
         out = self.up4(out)
 
-        out = F.upsample_bilinear(out, scale_factor=2)  # 32
+        out = F.upsample(out, scale_factor=2)  # 32
         out = torch.cat([down3, out], 1)
         out = self.up3(out)
 
-        out = F.upsample_bilinear(out, scale_factor=2)  # 64
+        out = F.upsample(out, scale_factor=2)  # 64
         out = torch.cat([down2, out], 1)
         out = self.up2(out)
 
-        out = F.upsample_bilinear(out, scale_factor=2)  # 128
+        out = F.upsample(out, scale_factor=2)  # 128
         out = torch.cat([down1, out], 1)
         out = self.up1(out)
         out = self.classify(out)
-        # out   = F.sigmoid(out)
 
         return out

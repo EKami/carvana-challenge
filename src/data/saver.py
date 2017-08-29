@@ -1,4 +1,5 @@
 import numpy as np
+from PIL import Image
 
 
 # TODO remove numpy usage and use Pytorch on the GPU
@@ -28,3 +29,9 @@ def rle(img):
 def rle_to_string(runs):
     return ' '.join(str(x) for x in runs)
 
+
+def prediction_saver(mask_prediction, prediction_filename):
+    starts_ix, lengths = rle(mask_prediction)
+
+def get_prediction_df(predictions):
+    pass

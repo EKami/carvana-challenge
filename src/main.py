@@ -14,18 +14,21 @@ def main():
     # Hyperparameters
     img_resize = (128, 128)
     batch_size = 32
-    epochs = 1
+    epochs = 10
     threads = cpu_count()
     use_cuda = torch.cuda.is_available()
 
     # Put None to work on full dataset
-    sample_size = 0.2
+    sample_size = None  # 0.2
 
     # Download the datasets
     ds_tools = DatasetTools()
     ds_tools.download_dataset()
     X_train, y_train, X_valid, y_valid = ds_tools.get_train_valid_split(sample_size=sample_size)
     X_test = ds_tools.get_test_files(sample_size)
+
+    # Get the original images size (assuming they are all the same size)
+    origin_img_size = ds_tools.get_image_size(X_train[0])
 
     train_ds = TrainImageDataset(X_train, y_train, img_resize, X_transform=aug.data_transformator)
     train_loader = DataLoader(train_ds, batch_size,
@@ -50,8 +53,9 @@ def main():
 
     # Predict
     predictions = classifier.predict(test_loader)
-    final_df = saver.get_prediction_df(predictions)
-    final_df.to_csv("submit.csv")
+    final_df = saver.get_prediction_df(predictions, origin_img_size)
+    final_df.to_csv("submit.csv.gz", index=False, compression='gzip')
+    print("Predictions wrote in submit.csv.gz file")
 
 if __name__ == "__main__":
     main()

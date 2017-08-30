@@ -8,6 +8,7 @@ from tqdm import tqdm
 from collections import OrderedDict
 
 import nn.losses as losses_utils
+import img.transformer as transformer
 import numpy as np
 
 
@@ -135,11 +136,10 @@ class CarvanaClassifier:
                 # forward
                 logits = self.net(images)
                 probs = F.sigmoid(logits)
-                preds = (probs > threshold).float()
 
                 # Save the predictions
-                for (mask, name) in zip(preds, files_name):
-                    predictions.append((mask.data[0], name))
+                for (mask, name) in zip(probs, files_name):
+                    predictions.append((mask.data[0].cpu().numpy(), name))
 
                 pbar.update(1)
 

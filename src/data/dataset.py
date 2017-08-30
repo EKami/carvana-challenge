@@ -80,6 +80,10 @@ class DatasetTools:
         img = Image.open(image_path)
         return np.asarray(img, dtype=np.uint8)
 
+    def get_image_size(self, image):
+        img = Image.open(image)
+        return img.size
+
     def get_train_valid_split(self, validation_size=0.2, sample_size=None):
         """
 

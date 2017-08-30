@@ -1,37 +1,33 @@
 import numpy as np
-from PIL import Image
+import pandas as pd
+import cv2
+from tqdm import tqdm
 
 
 # TODO remove numpy usage and use Pytorch on the GPU
-def rle(img):
-    """
-    Encore an image to the Run-length encoding format for
-    the final csv file
-        Ex:
-            mask = np.array(Image.open('../input/train_masks/00087a6bd4dc_01_mask.gif'), dtype=np.uint8)
-            mask_rle = rle(mask)
-            print(mask_rle)
-    :param img: the image as a numpy array
-    :return: the mask rle
-    """
-    flat_img = img.flatten()
-    flat_img = np.where(flat_img > 0.5, 1, 0).astype(np.uint8)
-
-    starts = np.array((flat_img[:-1] == 0) & (flat_img[1:] == 1))
-    ends = np.array((flat_img[:-1] == 1) & (flat_img[1:] == 0))
-    starts_ix = np.where(starts)[0] + 2
-    ends_ix = np.where(ends)[0] + 2
-    lengths = ends_ix - starts_ix
-
-    return starts_ix, lengths
+# https://www.kaggle.com/stainsby/fast-tested-rle
+def run_length_encode(mask):
+    '''
+    img: numpy array, 1 - mask, 0 - background
+    Returns run length as string formated
+    '''
+    inds = mask.flatten()
+    runs = np.where(inds[1:] != inds[:-1])[0] + 2
+    runs[1::2] = runs[1::2] - runs[:-1:2]
+    rle = ' '.join([str(r) for r in runs])
+    return rle
 
 
-def rle_to_string(runs):
-    return ' '.join(str(x) for x in runs)
+def get_prediction_df(predictions, orig_size, threshold=0.5):
+    total = len(predictions)
+    results = [None] * total
 
+    with tqdm(total=total, desc="Reshaping the results") as pbar:
+        for i, (img, name) in enumerate(predictions):
+            mask = cv2.resize(img, orig_size)
+            mask = mask > threshold
+            encoded = run_length_encode(mask)
+            results[i] = [name, encoded]
+            pbar.update(1)
 
-def prediction_saver(mask_prediction, prediction_filename):
-    starts_ix, lengths = rle(mask_prediction)
-
-def get_prediction_df(predictions):
-    pass
+    return pd.DataFrame(results, columns=["img", "rle_mask"])

@@ -6,7 +6,7 @@ from multiprocessing import cpu_count
 import nn.unet as unet
 from data.dataset import DatasetTools, TrainImageDataset, TestImageDataset
 import data.saver as saver
-from torch.utils.data.sampler import SequentialSampler, RandomSampler
+from torch.utils.data.sampler import RandomSampler
 import nn.classifier
 
 
@@ -14,7 +14,7 @@ def main():
     # Hyperparameters
     img_resize = (128, 128)
     batch_size = 32
-    epochs = 10
+    epochs = 20
     threads = cpu_count()
     use_cuda = torch.cuda.is_available()
 
@@ -41,7 +41,7 @@ def main():
                               num_workers=threads,
                               pin_memory=use_cuda)
 
-    test_ds = TestImageDataset(X_test, img_resize)  # Img have to be resized to fit in the nn
+    test_ds = TestImageDataset(X_test, img_resize)
     test_loader = DataLoader(test_ds, batch_size,
                              num_workers=threads,
                              pin_memory=use_cuda)
@@ -52,10 +52,11 @@ def main():
     classifier.train(epochs)
 
     # Predict
-    predictions = classifier.predict(test_loader)
-    final_df = saver.get_prediction_df(predictions, origin_img_size)
-    final_df.to_csv("submit.csv.gz", index=False, compression='gzip')
-    print("Predictions wrote in submit.csv.gz file")
+    output_file = "submit.csv.gz"
+    classifier.predict(test_loader, to_file=output_file,
+                       t_fnc=saver.get_prediction_transformer,
+                       fnc_args=[origin_img_size, 0.5])  # The get_prediction_transformer arguments
+    print("Predictions wrote in {} file".format(output_file))
 
 if __name__ == "__main__":
     main()

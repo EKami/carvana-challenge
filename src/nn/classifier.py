@@ -8,8 +8,8 @@ from tqdm import tqdm
 from collections import OrderedDict
 
 import nn.losses as losses_utils
-import img.transformer as transformer
-import numpy as np
+import gzip
+import csv
 
 
 class CarvanaClassifier:
@@ -115,17 +115,32 @@ class CarvanaClassifier:
             print("train_loss = {:03f}, train_acc = {:03f}\nval_loss   = {:03f}, val_acc   = {:03f}"
                   .format(train_loss, train_acc, valid_loss, valid_acc))
 
-    def predict(self, test_loader, threshold=0.5):
+    def predict(self, test_loader, to_file=None, t_fnc=None, fnc_args=None):
         """
-
+        Launch the prediction on the given loader and periodically
+        store them in a csv file with gz compression if to_file is given.
+        The results are stored in a list otherwise.
         :param test_loader: The loader containing the test dataset
-        :param threshold: The threshold used to consider a mask present or not
-        :return:
+        :param to_file: A gz file path or None if you want to get the prediction as array
+        :param fnc_args: A list of arguments to pass to t_fnc
+        :param t_fnc: A transformer function which takes in a single prediction array and
+                    return a transformed result. The signature of the function must be:
+                    t_fnc(prediction, *fnc_args) -> (transformed_prediction)
+        :return: The prediction array (empty if to_file is given)
         """
+        # Switch to evaluation mode
         self.net.eval()
 
         it_count = len(test_loader)
         predictions = []
+        file = None
+        writer = None
+
+        if to_file:
+            file = gzip.open(to_file, "wt", newline="")
+            writer = csv.writer(file)
+            writer.writerow(["img", "rle_mask"])
+
         with tqdm(total=it_count, desc="Classifying") as pbar:
             for ind, (images, files_name) in enumerate(test_loader):
                 if self.use_cuda:
@@ -138,9 +153,21 @@ class CarvanaClassifier:
                 probs = F.sigmoid(logits)
 
                 # Save the predictions
-                for (mask, name) in zip(probs, files_name):
-                    predictions.append((mask.data[0].cpu().numpy(), name))
+                for (pred, name) in zip(probs, files_name):
+                    pred_arr = pred.data[0].cpu().numpy()
+
+                    # Execute the transformer function
+                    if t_fnc:
+                        pred_arr = t_fnc(pred_arr, *fnc_args)
+
+                    if file:
+                        writer.writerow([name, pred_arr])
+                    else:
+                        predictions.append((name, pred_arr))
 
                 pbar.update(1)
+
+        if file:
+            file.close()
 
         return predictions

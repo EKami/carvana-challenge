@@ -1,10 +1,7 @@
 import numpy as np
-import pandas as pd
 import cv2
-from tqdm import tqdm
 
 
-# TODO remove numpy usage and use Pytorch on the GPU
 # https://www.kaggle.com/stainsby/fast-tested-rle
 def run_length_encode(mask):
     '''
@@ -18,16 +15,16 @@ def run_length_encode(mask):
     return rle
 
 
-def get_prediction_df(predictions, orig_size, threshold=0.5):
-    total = len(predictions)
-    results = [None] * total
+def get_prediction_transformer(prediction, orig_size, threshold=0.5):
+    """
+    A function that takes in a prediction array, reshape it to
+    its original size and length encore it
+    :param prediction: An array of predicted values
+    :param orig_size: The original size of the prediction array
+    :param threshold: The threshold used to consider a mask present or not
+    :return: A length encoded version of the passed prediction
+    """
+    mask = cv2.resize(prediction, orig_size)
+    mask = mask > threshold
+    return run_length_encode(mask)
 
-    with tqdm(total=total, desc="Reshaping the results") as pbar:
-        for i, (img, name) in enumerate(predictions):
-            mask = cv2.resize(img, orig_size)
-            mask = mask > threshold
-            encoded = run_length_encode(mask)
-            results[i] = [name, encoded]
-            pbar.update(1)
-
-    return pd.DataFrame(results, columns=["img", "rle_mask"])

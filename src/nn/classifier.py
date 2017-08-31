@@ -14,13 +14,19 @@ import csv
 
 class CarvanaClassifier:
     def __init__(self, net, train_loader: DataLoader, valid_loader: DataLoader):
+        """
+        The classifier for carvana used for training and launching predictions
+        Args:
+            net (nn.Module): The neural net module containing the definition of your model
+            train_loader (DataLoader): The Dataloader for training
+            valid_loader (DataLoader): The Dataloader for validation
+        """
         self.net = net
         self.valid_loader = valid_loader
         self.train_loader = train_loader
         self.use_cuda = torch.cuda.is_available()
 
     def _criterion(self, logits, labels):
-        # l = BCELoss2d()(logits, labels)
         l = losses_utils.BCELoss2d().forward(logits, labels) + losses_utils.SoftDiceLoss().forward(logits, labels)
         return l
 
@@ -96,6 +102,12 @@ class CarvanaClassifier:
         return losses.avg, accuracies.avg
 
     def train(self, epochs, threshold=0.5):
+        """
+            Trains the neural net
+        Args:
+            epochs (int): number of epochs
+            threshold: The threshold used to consider the mask present or not
+        """
         if self.use_cuda:
             self.net.cuda()
         optimizer = optim.SGD(self.net.parameters(), lr=0.01, momentum=0.9, weight_decay=0.0005)
@@ -117,16 +129,19 @@ class CarvanaClassifier:
 
     def predict(self, test_loader, to_file=None, t_fnc=None, fnc_args=None):
         """
-        Launch the prediction on the given loader and periodically
-        store them in a csv file with gz compression if to_file is given.
-        The results are stored in a list otherwise.
-        :param test_loader: The loader containing the test dataset
-        :param to_file: A gz file path or None if you want to get the prediction as array
-        :param fnc_args: A list of arguments to pass to t_fnc
-        :param t_fnc: A transformer function which takes in a single prediction array and
+            Launch the prediction on the given loader and periodically
+            store them in a csv file with gz compression if to_file is given.
+            The results are stored in a list otherwise.
+        Args:
+            test_loader (DataLoader): The loader containing the test dataset
+            to_file (str): A gz file path or None if you want to get the prediction as array
+            t_fnc (function): A transformer function which takes in a single prediction array and
                     return a transformed result. The signature of the function must be:
                     t_fnc(prediction, *fnc_args) -> (transformed_prediction)
-        :return: The prediction array (empty if to_file is given)
+            fnc_args: A list of arguments to pass to t_fnc
+
+        Returns:
+            list: The prediction array (empty if to_file is given)
         """
         # Switch to evaluation mode
         self.net.eval()

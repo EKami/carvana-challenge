@@ -13,6 +13,12 @@ def make_conv_bn_relu(in_channels, out_channels, kernel_size=3, stride=1, paddin
 
 class UNet128(nn.Module):
     def __init__(self, in_shape, num_classes):
+        """
+        The Unet classifier optimized for 128x128 images
+        Args:
+            in_shape (tuple): The shape of the input images
+            num_classes (int): The number of classes you want to predict
+        """
         super(UNet128, self).__init__()
         in_channels, height, width = in_shape
 

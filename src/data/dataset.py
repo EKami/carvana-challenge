@@ -8,8 +8,11 @@ import os
 
 
 class DatasetTools:
-
     def __init__(self):
+        """
+            A tool used to automatically download, check, split and get
+            relevant information on the dataset
+        """
         self.train_data = None
         self.test_data = None
         self.train_masks_data = None
@@ -23,7 +26,9 @@ class DatasetTools:
     def download_dataset(self):
         """
         Downloads the dataset and return the input paths
-        :return: [train_data, test_data, metadata_csv, train_masks_csv, train_masks_data]
+        Returns:
+            list: [train_data, test_data, metadata_csv, train_masks_csv, train_masks_data]
+
         """
         competition_name = "carvana-image-masking-challenge"
 
@@ -87,14 +92,17 @@ class DatasetTools:
     def get_train_valid_split(self, validation_size=0.2, sample_size=None):
         """
 
-        :param sample_size: int
-            Value between 0 and 1 or None.
-            Whether you want to have a sample of your dataset.
-        :param validation_size: int
-            Value between 0 and 1
-        :return: list
-            Returns the dataset in the form:
-            [train_data, train_masks_data, valid_data, valid_masks_data]
+        Args:
+            validation_size (int):
+                 Value between 0 and 1
+            sample_size (float, None):
+                Value between 0 and 1 or None.
+                Whether you want to have a sample of your dataset.
+
+        Returns:
+            list :
+                Returns the dataset in the form:
+                [train_data, train_masks_data, valid_data, valid_masks_data]
         """
         train_ids = self.train_ids
 
@@ -138,10 +146,13 @@ class DatasetTools:
 # Reference: https://github.com/pytorch/vision/blob/master/torchvision/datasets/folder.py#L66
 class TrainImageDataset(data.Dataset):
     def __init__(self, X_data, y_data=None, img_resize=(128, 128),
-                 X_transform=None, y_transform=None):
+                 X_transform=None, y_transform=None, threshold=0.5):
         """
-            A dataset loader taking RGB images as
+            A dataset loader taking images paths as argument and return
+            as them as tensors from getitem()
+
             Args:
+                threshold (float): The threshold used to consider the mask present or not
                 X_data (list): List of paths to the training images
                 y_data (list, optional): List of paths to the target images
                 img_resize (tuple): Tuple containing the new size of the images
@@ -152,6 +163,7 @@ class TrainImageDataset(data.Dataset):
                     Assumes X_data and y_data are not None.
                     (train_img, mask_img) and returns a transformed version with the same signature
         """
+        self.threshold = threshold
         self.X_train = X_data
         self.y_train_masks = y_data
         self.img_resize = img_resize
@@ -181,7 +193,7 @@ class TrainImageDataset(data.Dataset):
             img, mask = self.y_transform(img, mask)
 
         img = transformer.image_to_tensor(img)
-        mask = transformer.mask_to_tensor(mask)
+        mask = transformer.mask_to_tensor(mask, self.threshold)
         return img, mask
 
     def __len__(self):
@@ -192,7 +204,8 @@ class TrainImageDataset(data.Dataset):
 class TestImageDataset(data.Dataset):
     def __init__(self, X_data, img_resize=(128, 128)):
         """
-            A dataset loader taking RGB images as
+            A dataset loader taking images paths as argument and return
+            as them as tensors from getitem()
             Args:
                 X_data (list): List of paths to the training images
                 img_resize (tuple): Tuple containing the new size of the images

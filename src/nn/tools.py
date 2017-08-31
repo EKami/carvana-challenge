@@ -1,6 +1,5 @@
 
 
-# https://github.com/pytorch/examples/blob/master/imagenet/main.py ###############
 # https://github.com/pytorch/examples/blob/master/imagenet/main.py#L291
 def adjust_learning_rate(optimizer, lr):
     for param_group in optimizer.param_groups:

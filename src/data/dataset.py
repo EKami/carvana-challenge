@@ -23,9 +23,12 @@ class DatasetTools:
         self.masks_ids = None
         self.test_ids = None
 
-    def download_dataset(self):
+    def download_dataset(self, hq_files=True):
         """
         Downloads the dataset and return the input paths
+        Args:
+            hq_files (bool): Whether to download the hq files or not
+
         Returns:
             list: [train_data, test_data, metadata_csv, train_masks_csv, train_masks_data]
 
@@ -33,10 +36,15 @@ class DatasetTools:
         competition_name = "carvana-image-masking-challenge"
 
         script_dir = os.path.dirname(__file__)
-        destination_path = os.path.join(script_dir, '../input/')
-        files = ["train.zip", "test.zip", "metadata.csv.zip", "train_masks.csv.zip", "train_masks.zip"]
-        datasets_path = ["../input/train", "../input/test", "../input/metadata.csv", "../input/train_masks.csv",
-                        "../input/train_masks"]
+        destination_path = os.path.join(script_dir, '../../input/')
+        prefix = ""
+        if hq_files:
+            prefix = "_hq"
+        files = ["train"+prefix+".zip", "test"+prefix+".zip", "metadata.csv.zip",
+                 "train_masks.csv.zip", "train_masks.zip"]
+        datasets_path = [destination_path+"train"+prefix, destination_path+"test"+prefix,
+                         destination_path+"metadata.csv", destination_path+"train_masks.csv",
+                         destination_path+"train_masks"]
         is_datasets_present = True
 
         # If the folders already exists then the files may already be extracted

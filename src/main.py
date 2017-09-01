@@ -1,9 +1,11 @@
+import os
 import torch
 from torch.utils.data import DataLoader
 import img.augmentation as aug
 from multiprocessing import cpu_count
 
 import nn.unet as unet
+from nn.callbacks import TensorboardVisualizerCallback
 from data.dataset import DatasetTools, TrainImageDataset, TestImageDataset
 import data.saver as saver
 from torch.utils.data.sampler import RandomSampler
@@ -20,6 +22,8 @@ def main():
     # Optional parameters
     threads = cpu_count()
     use_cuda = torch.cuda.is_available()
+    script_dir = os.path.dirname(__file__)
+    tb_viz_cb = TensorboardVisualizerCallback(os.path.join(script_dir, '../logs'))
 
     # Put None to work on full dataset
     sample_size = None  # 0.2
@@ -35,7 +39,7 @@ def main():
     # Get the original images size (assuming they are all the same size)
     origin_img_size = ds_tools.get_image_size(X_train[0])
 
-    train_ds = TrainImageDataset(X_train, y_train, img_resize, X_transform=aug.data_transformer)
+    train_ds = TrainImageDataset(X_train, y_train, img_resize, X_transform=aug.augment_img)
     train_loader = DataLoader(train_ds, batch_size,
                               sampler=RandomSampler(train_ds),
                               num_workers=threads,
@@ -51,13 +55,16 @@ def main():
                              num_workers=threads,
                              pin_memory=use_cuda)
 
-    # Launch train on Unet128
+    # Create a Unet128 model
     net = unet.UNet128((3, *img_resize), 1)
+
     classifier = nn.classifier.CarvanaClassifier(net, train_loader, valid_loader)
-    classifier.train(epochs)
+
+    # Launch train on Unet128
+    classifier.train(epochs, callbacks=[tb_viz_cb])
 
     # Predict & save
-    output_file = "submit.csv.gz"
+    output_file = os.path.join(script_dir, '../output/submit.csv.gz')
     classifier.predict(test_loader, to_file=output_file,
                        t_fnc=saver.get_prediction_transformer,
                        fnc_args=[origin_img_size, 0.5])  # The get_prediction_transformer arguments

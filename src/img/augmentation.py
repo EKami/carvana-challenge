@@ -67,7 +67,7 @@ def random_horizontal_flip(image, mask, u=0.5):
     return image, mask
 
 
-def data_transformer(img, mask):
+def augment_img(img, mask):
     img = random_hue_saturation_value(img,
                                       hue_shift_limit=(-50, 50),
                                       sat_shift_limit=(-5, 5),

@@ -4,7 +4,9 @@ __pycache__/
 *$py.class
 .idea/
 input/
-src/submit.csv.gz
+output/
+logs/
+submit.csv.gz
 
 # C extensions
 *.so

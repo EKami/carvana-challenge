@@ -37,29 +37,33 @@ class CarvanaClassifier:
 
         it_count = len(self.valid_loader)
         batch_size = self.train_loader.batch_size
+
+        images = None  # To save the last images batch
+        targets = None  # To save the last target batch
+        preds = None  # To save the last prediction batch
         with tqdm(total=it_count, desc="Validating", leave=False) as pbar:
-            for ind, (images, target) in enumerate(self.valid_loader):
+            for ind, (images, targets) in enumerate(self.valid_loader):
                 if self.use_cuda:
                     images = images.cuda()
-                    target = target.cuda()
+                    targets = targets.cuda()
 
                 # Volatile because we are in pure inference mode
                 # http://pytorch.org/docs/master/notes/autograd.html#volatile
                 images = Variable(images, volatile=True)
-                target = Variable(target, volatile=True)
+                targets = Variable(targets, volatile=True)
 
                 # forward
                 logits = self.net(images)
                 probs = F.sigmoid(logits)
-                pred = (probs > threshold).float()
+                preds = (probs > threshold).float()
 
-                loss = self._criterion(logits, target)
-                acc = losses_utils.dice_loss(pred, target)
+                loss = self._criterion(logits, targets)
+                acc = losses_utils.dice_loss(preds, targets)
                 losses.update(loss.data[0], batch_size)
                 accuracies.update(acc.data[0], batch_size)
                 pbar.update(1)
 
-        return losses.avg, accuracies.avg
+        return losses.avg, accuracies.avg, images, targets, preds
 
     def _train_epoch(self, epoch_id, epochs, optimizer, threshold):
         losses = tools.AverageMeter()
@@ -101,12 +105,13 @@ class CarvanaClassifier:
                 pbar.update(1)
         return losses.avg, accuracies.avg
 
-    def train(self, epochs, threshold=0.5):
+    def train(self, epochs, threshold=0.5, callbacks=None):
         """
             Trains the neural net
         Args:
             epochs (int): number of epochs
             threshold: The threshold used to consider the mask present or not
+            callbacks (list): List of callbacks functions to call at each epoch
         """
         if self.use_cuda:
             self.net.cuda()
@@ -117,6 +122,7 @@ class CarvanaClassifier:
               .format(len(self.train_loader.dataset), len(self.valid_loader.dataset)))
 
         for epoch_id, epoch in enumerate(range(epochs)):
+            # switch to train mode
             self.net.train()
 
             # Run a train pass on the current epoch
@@ -125,9 +131,21 @@ class CarvanaClassifier:
             # switch to evaluate mode
             self.net.eval()
 
-            valid_loss, valid_acc = self._validate_epoch(threshold)
+            # Run the validation pass
+            valid_loss, valid_acc, last_images, last_targets, last_preds = self._validate_epoch(threshold)
 
+            # Reduce learning rate if needed
             lr_scheduler.step(valid_loss, epoch_id)
+
+            # If there are callback call their __call__ method and pass in some arguments
+            if callbacks:
+                for cb in callbacks:
+                    cb(net=self.net,
+                       last_val_batch=(last_images, last_targets, last_preds),
+                       train_loss=train_loss, train_acc=train_acc,
+                       valid_loss=valid_loss, valid_acc=valid_acc
+                       )
+
             print("train_loss = {:03f}, train_acc = {:03f}\n"
                   "val_loss   = {:03f}, val_acc   = {:03f}"
                   .format(train_loss, train_acc, valid_loss, valid_acc))

@@ -14,7 +14,7 @@ def main():
     # Hyperparameters
     img_resize = (128, 128)
     batch_size = 32
-    epochs = 20
+    epochs = 100
     threshold = 0.5
 
     # Optional parameters

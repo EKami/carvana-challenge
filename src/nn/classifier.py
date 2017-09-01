@@ -3,6 +3,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 import nn.tools as tools
 from tqdm import tqdm
 from collections import OrderedDict
@@ -91,7 +92,6 @@ class CarvanaClassifier:
 
                 # print statistics
                 acc = losses_utils.dice_loss(pred, target)
-                lr = tools.get_learning_rate(optimizer)[0]
 
                 losses.update(loss.data[0], batch_size)
                 accuracies.update(acc.data[0], batch_size)
@@ -111,9 +111,11 @@ class CarvanaClassifier:
         if self.use_cuda:
             self.net.cuda()
         optimizer = optim.SGD(self.net.parameters(), lr=0.01, momentum=0.9, weight_decay=0.0005)
+        lr_scheduler = ReduceLROnPlateau(optimizer, 'min', patience=2, verbose=True, min_lr=1e-7)
 
         print("Training on {} samples and validating on {} samples "
               .format(len(self.train_loader.dataset), len(self.valid_loader.dataset)))
+
         for epoch_id, epoch in enumerate(range(epochs)):
             self.net.train()
 
@@ -124,7 +126,10 @@ class CarvanaClassifier:
             self.net.eval()
 
             valid_loss, valid_acc = self._validate_epoch(threshold)
-            print("train_loss = {:03f}, train_acc = {:03f}\nval_loss   = {:03f}, val_acc   = {:03f}"
+
+            lr_scheduler.step(valid_loss, epoch_id)
+            print("train_loss = {:03f}, train_acc = {:03f}\n"
+                  "val_loss   = {:03f}, val_acc   = {:03f}"
                   .format(train_loss, train_acc, valid_loss, valid_acc))
 
     def predict(self, test_loader, to_file=None, t_fnc=None, fnc_args=None):

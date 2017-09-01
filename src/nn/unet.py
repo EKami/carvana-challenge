@@ -55,7 +55,7 @@ class UNet128(nn.Module):
         self.up4 = nn.Sequential(
             *make_conv_bn_relu(1024, 512, kernel_size=1, stride=1, padding=0),
             *make_conv_bn_relu(512, 512, kernel_size=3, stride=1, padding=1),
-            # nn.Dropout(p=0.10),
+            nn.Dropout(p=0.10),
         )
 
         # 16

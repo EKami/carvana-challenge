@@ -8,6 +8,7 @@ This repository holds the code for the [carnava image making challenge](https://
  - Sklearn
  - Numpy
  - [Kaggle data downloader](https://github.com/EKami/kaggle-data-downloader)
+ - [Tensorboard Pytorch](https://github.com/lanpa/tensorboard-pytorch)
 
 # Usage
 

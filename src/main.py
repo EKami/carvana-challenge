@@ -16,7 +16,7 @@ def main():
     # Hyperparameters
     img_resize = (128, 128)
     batch_size = 32
-    epochs = 100
+    epochs = 20
     threshold = 0.5
 
     # Optional parameters
@@ -55,12 +55,12 @@ def main():
                              num_workers=threads,
                              pin_memory=use_cuda)
 
-    # Create a Unet128 model
-    net = unet.UNet128((3, *img_resize), 1)
+    # Create a Unet1024 model
+    net = unet.UNet128((3, *img_resize))
 
     classifier = nn.classifier.CarvanaClassifier(net, train_loader, valid_loader)
 
-    # Launch train on Unet128
+    # Launch training
     classifier.train(epochs, callbacks=[tb_viz_cb])
 
     # Predict & save

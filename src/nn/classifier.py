@@ -142,6 +142,7 @@ class CarvanaClassifier:
                 for cb in callbacks:
                     cb(net=self.net,
                        last_val_batch=(last_images, last_targets, last_preds),
+                       epoch_id=epoch_id,
                        train_loss=train_loss, train_acc=train_acc,
                        valid_loss=valid_loss, valid_acc=valid_acc
                        )

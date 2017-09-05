@@ -22,15 +22,15 @@ def main():
     # Optional parameters
     threads = cpu_count()
     use_cuda = torch.cuda.is_available()
-    script_dir = os.path.dirname(__file__)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
     tb_viz_cb = TensorboardVisualizerCallback(os.path.join(script_dir, '../logs'))
 
     # Put None to work on full dataset
-    sample_size = None  # 0.2
+    sample_size = None  # 0.1
 
     # Download the datasets
     ds_tools = DatasetTools()
-    ds_tools.download_dataset()
+    ds_tools.download_dataset(hq_files=False)
 
     # Get the path to the files for the neural net
     X_train, y_train, X_valid, y_valid = ds_tools.get_train_valid_split(sample_size=sample_size)

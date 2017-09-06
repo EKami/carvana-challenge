@@ -15,10 +15,10 @@ class TensorboardVisualizerCallback:
         """
         self.writer = SummaryWriter(path_to_files)
 
-    def _draw_contour(self, image, mask, color=(0, 255, 0), thickness=1):
-        ret = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        contours = ret[1]
-        return cv2.drawContours(image, contours, -1, color, thickness=cv2.FILLED)
+    def _apply_mask_overlay(self, image, mask, color=(0, 255, 0)):
+        mask = np.dstack((mask, mask, mask)) * np.array(color)
+        mask = mask.astype(np.uint8)
+        return cv2.addWeighted(mask, 0.5, image, 0.5, 0.)  # image * α + mask * β + λ
 
     def _get_mask_representation(self, image, mask):
         """
@@ -43,8 +43,7 @@ class TensorboardVisualizerCallback:
 
         m = np.zeros((H * W), np.uint8)
         l = mask.reshape(-1)
-        masked_img = image.copy()
-        masked_img = self._draw_contour(masked_img, mask, color=(0, 0, 255), thickness=1)
+        masked_img = self._apply_mask_overlay(image, mask)
 
         a = (2 * l + m)
         miss = np.where(a == 2)[0]
@@ -57,7 +56,7 @@ class TensorboardVisualizerCallback:
 
         results[:, 0:W] = image
         results[:, W:2 * W] = p
-        results[:, 2 * W:3 * W] = masked_img  # image * α + mask * β + λ
+        results[:, 2 * W:3 * W] = masked_img
         return results
 
     def __call__(self, *args, **kwargs):

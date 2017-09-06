@@ -19,8 +19,13 @@ export KAGGLE_USER="your_kaggle_username"
 export KAGGLE_PASSWD="your_kaggle_password"
 ```
 
-This will allow the script to automatically check and download the required dataset from Kaggle.
+This will allow you to automatically check and download the required dataset from Kaggle.
 When it's done simply execute the main file with:
 ```
-python main.py
+python src/main.py
+```
+
+If you want to take a look at the prediction at each epochs you can use tensorboard with:
+```
+tensorboard --logdir=./logs
 ```

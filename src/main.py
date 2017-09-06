@@ -8,7 +8,7 @@ import nn.unet as unet
 from nn.callbacks import TensorboardVisualizerCallback
 from data.dataset import DatasetTools, TrainImageDataset, TestImageDataset
 import data.saver as saver
-from torch.utils.data.sampler import RandomSampler
+from torch.utils.data.sampler import RandomSampler, SequentialSampler
 import nn.classifier
 
 
@@ -47,11 +47,13 @@ def main():
 
     valid_ds = TrainImageDataset(X_valid, y_valid, img_resize, threshold=threshold)
     valid_loader = DataLoader(valid_ds, batch_size,
+                              sampler=SequentialSampler(valid_ds),
                               num_workers=threads,
                               pin_memory=use_cuda)
 
     test_ds = TestImageDataset(X_test, img_resize)
     test_loader = DataLoader(test_ds, batch_size,
+                             sampler=SequentialSampler(test_ds),
                              num_workers=threads,
                              pin_memory=use_cuda)
 

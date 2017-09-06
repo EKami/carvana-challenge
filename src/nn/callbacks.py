@@ -1,6 +1,6 @@
 import cv2
-import os
 import numpy as np
+import scipy.misc as scipy
 from tensorboardX import SummaryWriter
 
 
@@ -16,11 +16,9 @@ class TensorboardVisualizerCallback:
         self.writer = SummaryWriter(path_to_files)
 
     def _draw_contour(self, image, mask, color=(0, 255, 0), thickness=1):
-        threshold = 127
-        ret, thresh = cv2.threshold(mask, threshold, 255, 0)
-        ret = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        ret = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         contours = ret[1]
-        cv2.drawContours(image, contours, -1, color, thickness, cv2.LINE_AA)
+        return cv2.drawContours(image, contours, -1, color, thickness=cv2.FILLED)
 
     def _get_mask_representation(self, image, mask):
         """
@@ -43,12 +41,10 @@ class TensorboardVisualizerCallback:
         results = np.zeros((H, 3 * W, 3), np.uint8)
         p = np.zeros((H * W, 3), np.uint8)
 
-        l = np.zeros((H * W), np.uint8)
         m = np.zeros((H * W), np.uint8)
-        image1 = image.copy()
-        if mask is not None:
-            l = mask.reshape(-1)
-            self._draw_contour(image1, mask, color=(0, 0, 255), thickness=1)
+        l = mask.reshape(-1)
+        masked_img = image.copy()
+        masked_img = self._draw_contour(masked_img, mask, color=(0, 0, 255), thickness=1)
 
         a = (2 * l + m)
         miss = np.where(a == 2)[0]
@@ -59,25 +55,30 @@ class TensorboardVisualizerCallback:
         p[fp] = np.array([0, 255, 0])
         p = p.reshape(H, W, 3)
 
-        results[:, 0:W] = image1
+        results[:, 0:W] = image
         results[:, W:2 * W] = p
-        results[:, 2 * W:3 * W] = image  # image * α + mask * β + λ
+        results[:, 2 * W:3 * W] = masked_img  # image * α + mask * β + λ
         return results
 
     def __call__(self, *args, **kwargs):
-        net = kwargs['net']
         epoch_id = kwargs['epoch_id']
 
         last_images, last_targets, last_preds = kwargs['last_val_batch']
         for i, (image, target_mask, pred_mask) in enumerate(zip(last_images, last_targets, last_preds)):
 
             image = image.data.float().cpu().numpy().astype(np.uint8)
-            image = np.transpose(image)  # Invert c, h, w to h, w, c
+            image = np.transpose(image, (1, 2, 0))  # Invert c, h, w to h, w, c
             target_mask = target_mask.float().data.cpu().numpy().astype(np.uint8)
             pred_mask = pred_mask.float().data.cpu().numpy().astype(np.uint8)
+            if image.shape[0] > 256:  # We don't want the images on tensorboard to be too large
+                image = scipy.imresize(image, (256, 256))
+                target_mask = scipy.imresize(target_mask, (256, 256))
+                pred_mask = scipy.imresize(pred_mask, (256, 256))
 
             expected_result = self._get_mask_representation(image, target_mask)
             pred_result = self._get_mask_representation(image, pred_mask)
-            self.writer.add_image('Expected-Image_'+str(i)+"-Epoch_"+str(epoch_id), expected_result, epoch_id)
-            self.writer.add_image('Predicted-Image_' + str(i) + "-Epoch_" + str(epoch_id), pred_result, epoch_id)
+            self.writer.add_image("Epoch_"+str(epoch_id)+'-Image_'+str(i+1)+'-Expected', expected_result, epoch_id)
+            self.writer.add_image("Epoch_" + str(epoch_id)+'-Image_' + str(i+1)+'-Predicted', pred_result, epoch_id)
+            if i == 1:  # 2 Images are sufficient
+                break
         #self.writer.close()

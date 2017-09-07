@@ -115,7 +115,7 @@ class CarvanaClassifier:
         """
         if self.use_cuda:
             self.net.cuda()
-        optimizer = optim.SGD(self.net.parameters(), lr=0.01, momentum=0.9, weight_decay=0.0005)
+        optimizer = optim.Adam(self.net.parameters())
         lr_scheduler = ReduceLROnPlateau(optimizer, 'min', patience=2, verbose=True, min_lr=1e-7)
 
         print("Training on {} samples and validating on {} samples "

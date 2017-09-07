@@ -30,7 +30,7 @@ def main():
 
     # Download the datasets
     ds_tools = DatasetTools()
-    ds_tools.download_dataset(hq_files=False)
+    ds_tools.download_dataset()
 
     # Get the path to the files for the neural net
     X_train, y_train, X_valid, y_valid = ds_tools.get_train_valid_split(sample_size=sample_size)

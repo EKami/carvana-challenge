@@ -7,6 +7,8 @@ This repository holds the code for the [carnava image making challenge](https://
  - Pytorch 0.2.0
  - Sklearn
  - Numpy
+ - [OpenCV-Python](https://pypi.python.org/pypi/opencv-python)
+ - [Pillow SIMD](https://github.com/uploadcare/pillow-simd) (for speedup) or the original [Pillow](https://github.com/python-pillow/Pillow)
  - [Kaggle data downloader](https://github.com/EKami/kaggle-data-downloader)
  - [Tensorboard Pytorch](https://github.com/lanpa/tensorboard-pytorch)
 

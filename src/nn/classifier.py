@@ -11,6 +11,7 @@ from collections import OrderedDict
 import nn.losses as losses_utils
 import gzip
 import csv
+import utils
 
 
 class CarvanaClassifier:
@@ -65,6 +66,7 @@ class CarvanaClassifier:
 
         return losses.avg, accuracies.avg, images, targets, preds
 
+    @utils.st_time(show_func_name=False)
     def _train_epoch(self, epoch_id, epochs, optimizer, threshold):
         losses = tools.AverageMeter()
         accuracies = tools.AverageMeter()
@@ -146,7 +148,6 @@ class CarvanaClassifier:
                        train_loss=train_loss, train_acc=train_acc,
                        valid_loss=valid_loss, valid_acc=valid_acc
                        )
-
             print("train_loss = {:03f}, train_acc = {:03f}\n"
                   "val_loss   = {:03f}, val_acc   = {:03f}"
                   .format(train_loss, train_acc, valid_loss, valid_acc))

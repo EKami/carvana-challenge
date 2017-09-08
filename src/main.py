@@ -72,5 +72,6 @@ def main():
                        fnc_args=[origin_img_size, 0.5])  # The get_prediction_transformer arguments
     print("Predictions wrote in {} file".format(output_file))
 
+
 if __name__ == "__main__":
     main()

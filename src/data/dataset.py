@@ -40,11 +40,11 @@ class DatasetTools:
         prefix = ""
         if hq_files:
             prefix = "_hq"
-        files = ["train"+prefix+".zip", "test"+prefix+".zip", "metadata.csv.zip",
+        files = ["train" + prefix + ".zip", "test" + prefix + ".zip", "metadata.csv.zip",
                  "train_masks.csv.zip", "train_masks.zip"]
-        datasets_path = [destination_path+"train"+prefix, destination_path+"test"+prefix,
-                         destination_path+"metadata.csv", destination_path+"train_masks.csv",
-                         destination_path+"train_masks"]
+        datasets_path = [destination_path + "train" + prefix, destination_path + "test" + prefix,
+                         destination_path + "metadata.csv", destination_path + "train_masks.csv",
+                         destination_path + "train_masks"]
         is_datasets_present = True
 
         # If the folders already exists then the files may already be extracted
@@ -180,10 +180,10 @@ class TrainImageDataset(data.Dataset):
 
     def __getitem__(self, index):
         """
-        Args:
-            index (int): Index
-        Returns:
-            tuple: (image, target) where target is class_index of the target class.
+            Args:
+                index (int): Index
+            Returns:
+                tuple: (image, target) where target is class_index of the target class.
         """
         img = Image.open(self.X_train[index])
         img = img.resize(self.img_resize, Image.ANTIALIAS)

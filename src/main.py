@@ -17,7 +17,7 @@ def main():
     ds_tools = DatasetTools()
     ds_tools.download_dataset()
 
-    crossval.run_crossval(img_resize, batch_size, epochs, threshold, sample_size, n_fold)
+    crossval.run_crossval(ds_tools, img_resize, batch_size, epochs, threshold, sample_size, n_fold)
 
 
 if __name__ == "__main__":

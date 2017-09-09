@@ -97,7 +97,7 @@ class DatasetTools:
         img = Image.open(image)
         return img.size
 
-    def get_train_valid_split(self, validation_size=0.2, sample_size=None):
+    def get_train_files(self, validation_size=0.2, sample_size=None):
         """
 
         Args:
@@ -119,7 +119,11 @@ class DatasetTools:
             rnd = np.random.choice(self.train_ids, int(len(self.train_ids) * sample_size))
             train_ids = rnd.ravel()
 
-        ids_train_split, ids_valid_split = train_test_split(train_ids, test_size=validation_size)
+        if validation_size:
+            ids_train_split, ids_valid_split = train_test_split(train_ids, test_size=validation_size)
+        else:
+            ids_train_split = train_ids
+            ids_valid_split = []
 
         train_ret = []
         train_masks_ret = []

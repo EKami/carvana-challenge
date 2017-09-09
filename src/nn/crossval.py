@@ -19,6 +19,7 @@ def run_crossval(classifier: nn.classifier.CarvanaClassifier, ds_tools: DatasetT
                  batch_size, epochs_per_fold, threshold, sample_size, n_fold):
     """
         Run the training and predict pass across the whole dataset
+
     Args:
         classifier (object): The classifier object
         ds_tools (object): The DatasetTools object
@@ -26,11 +27,9 @@ def run_crossval(classifier: nn.classifier.CarvanaClassifier, ds_tools: DatasetT
         batch_size (int): The batch size
         epochs_per_fold (int): epoch for every fold of the cross validation passes
         threshold (float): The threshold used to consider the mask present or not
-        sample_size (float): Value between 0 and 1 to use a sample of the dataset instead of using it all
+        sample_size (float, None): Value between 0 and 1 to use a sample of the dataset instead of using it all
             None if you want to use the whole dataset
         n_fold: The number of folds for cross validation
-
-    Returns:
 
     """
     threads = cpu_count()

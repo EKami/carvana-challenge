@@ -1,6 +1,7 @@
 import torch.utils.data as data
 import numpy as np
 import h5py
+from PIL import Image
 
 
 #
@@ -53,13 +54,17 @@ class CacheDatasetWrapper(data.Dataset):
                 preprocessed_obj = self.dataset[index][i]
                 curr_dset[index] = preprocessed_obj.numpy()
                 ret[i] = preprocessed_obj
-                d = 0
             else:  # If the record has been found in cache
-                #print("Data retrieved from cache!")
+                # print("Data retrieved from cache!")
                 ret[i] = curr_dset_type(curr_dset[index])  # cast file in the original type
-                d = 0
 
         return ret
 
     def __len__(self):
         return len(self.dataset)
+
+
+def center_cropping_resize(img, new_size):
+    shortest = min(img.width, img.height)
+    resized = np.round(np.multiply(new_size / shortest, img.size)).astype(int)
+    return img.resize(resized, Image.BILINEAR)

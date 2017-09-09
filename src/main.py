@@ -32,7 +32,7 @@ def main():
     # Clear output dirs
     utils.clear_output_dirs()
 
-    crossval.run_crossval(classifier, ds_tools, img_resize, batch_size, epochs, threshold, sample_size, n_fold)
+    crossval.run_crossval(classifier, ds_tools, img_resize, batch_size, epochs_per_fold, threshold, sample_size, n_fold)
 
 
 if __name__ == "__main__":

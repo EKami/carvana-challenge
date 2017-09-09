@@ -194,7 +194,7 @@ class CarvanaClassifier:
 
                 # Save the predictions
                 for (pred, name) in zip(probs, files_name):
-                    pred_arr = pred.data[0].cpu().numpy()
+                    pred_arr = pred.data.cpu().numpy()
 
                     # Execute the transformer function
                     if t_fnc:

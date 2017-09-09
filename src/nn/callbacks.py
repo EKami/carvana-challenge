@@ -4,7 +4,12 @@ import scipy.misc as scipy
 from tensorboardX import SummaryWriter
 
 
-class TensorboardVisualizerCallback:
+class Callback:
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError
+
+
+class TensorboardVisualizerCallback(Callback):
     def __init__(self, path_to_files):
         """
             Callback intended to be executed at each epoch

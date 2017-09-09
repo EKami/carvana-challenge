@@ -1,30 +1,45 @@
-import os
 import torch
 from torch.utils.data import DataLoader
-import img.augmentation as aug
-from multiprocessing import cpu_count
-
-import nn.unet as unet
-from nn.callbacks import TensorboardVisualizerCallback
-from sklearn.model_selection import KFold
-
 from torch.utils.data.sampler import RandomSampler, SequentialSampler
+
+import img.augmentation as aug
+from data.dataset import DatasetTools
 import nn.classifier
+from nn.callbacks import TensorboardVisualizerCallback
+
+import os
+from multiprocessing import cpu_count
+from sklearn.model_selection import KFold
 
 from data.dataset import TrainImageDataset, TestImageDataset
 import data.saver as saver
 
 
-def run_crossval(ds_tools, img_resize, batch_size, epochs, threshold, sample_size, n_fold):
+def run_crossval(classifier: nn.classifier.CarvanaClassifier, ds_tools: DatasetTools, img_resize,
+                 batch_size, epochs_per_fold, threshold, sample_size, n_fold):
+    """
+        Run the training and predict pass across the whole dataset
+    Args:
+        classifier (object): The classifier object
+        ds_tools (object): The DatasetTools object
+        img_resize (tuple): Tuple containing the new size of the images for training
+        batch_size (int): The batch size
+        epochs_per_fold (int): epoch for every fold of the cross validation passes
+        threshold (float): The threshold used to consider the mask present or not
+        sample_size (float): Value between 0 and 1 to use a sample of the dataset instead of using it all
+            None if you want to use the whole dataset
+        n_fold: The number of folds for cross validation
+
+    Returns:
+
+    """
     threads = cpu_count()
     use_cuda = torch.cuda.is_available()
     script_dir = os.path.dirname(os.path.abspath(__file__))
     tb_viz_cb = TensorboardVisualizerCallback(os.path.join(script_dir, '../../logs'))
     kf = KFold(n_splits=n_fold, shuffle=True)
 
-    # Define our nn architecture
-    net = unet.UNet1024((3, *img_resize))
-    classifier = None
+    origin_img_size = None
 
     # Get the path to the files for the neural net
     # We don't want to split train/valid for crossval
@@ -52,10 +67,8 @@ def run_crossval(ds_tools, img_resize, batch_size, epochs, threshold, sample_siz
                                   num_workers=threads,
                                   pin_memory=use_cuda)
 
-        classifier = nn.classifier.CarvanaClassifier(net, train_loader, valid_loader)
-
         # Launch training
-        classifier.train(epochs, callbacks=[tb_viz_cb])
+        classifier.train(train_loader, valid_loader, epochs_per_fold, callbacks=[tb_viz_cb])
 
     test_ds = TestImageDataset(full_x_test, img_resize)
     test_loader = DataLoader(test_ds, batch_size,

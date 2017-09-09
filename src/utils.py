@@ -1,4 +1,5 @@
 import time
+import os
 
 
 def st_time(show_func_name=True):
@@ -23,3 +24,20 @@ def st_time(show_func_name=True):
         return st_func
     return wrapper
 
+
+def clear_output_dirs():
+    """
+        Clear the output directories such
+        as output/ and logs/
+
+    """
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    folders = [os.path.join(script_dir, '../logs/'), os.path.join(script_dir, '../output/')]
+    for folder in folders:
+        for the_file in os.listdir(folder):
+            file_path = os.path.join(folder, the_file)
+            try:
+                if os.path.isfile(file_path):
+                    os.unlink(file_path)
+            except Exception as e:
+                print(e)

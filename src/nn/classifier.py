@@ -153,9 +153,6 @@ class CarvanaClassifier:
         optimizer = optim.Adam(self.net.parameters())
         lr_scheduler = ReduceLROnPlateau(optimizer, 'min', patience=2, verbose=True, min_lr=1e-7)
 
-        print("Training on {} samples and validating on {} samples "
-              .format(len(train_loader.dataset), len(valid_loader.dataset)))
-
         for epoch in range(epochs):
             self._run_epoch(train_loader, valid_loader, optimizer, lr_scheduler, threshold, callbacks)
 
@@ -215,6 +212,8 @@ class CarvanaClassifier:
                 pbar.update(1)
 
         if file:
+            file.flush()
             file.close()
+            print("Predictions wrote in {} file".format(to_file))
 
         return predictions

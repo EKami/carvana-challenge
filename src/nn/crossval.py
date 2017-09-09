@@ -45,7 +45,7 @@ def run_crossval(classifier: nn.classifier.CarvanaClassifier, ds_tools: DatasetT
     full_x_train, full_y_train, _, _ = ds_tools.get_train_files(sample_size=sample_size, validation_size=0)
     full_x_test = ds_tools.get_test_files(sample_size)
 
-    for train_indexes, valid_indexes in kf.split(full_x_train):
+    for i, (train_indexes, valid_indexes) in enumerate(kf.split(full_x_train)):
         X_train = full_x_train[train_indexes]
         y_train = full_y_train[train_indexes]
         X_valid = full_x_train[valid_indexes]
@@ -66,6 +66,10 @@ def run_crossval(classifier: nn.classifier.CarvanaClassifier, ds_tools: DatasetT
                                   num_workers=threads,
                                   pin_memory=use_cuda)
 
+        if i == 0:
+            print("Training on {} samples and validating on {} samples "
+                  .format(len(train_loader.dataset), len(valid_loader.dataset)))
+
         # Launch training
         classifier.train(train_loader, valid_loader, epochs_per_fold, callbacks=[tb_viz_cb])
 
@@ -80,4 +84,3 @@ def run_crossval(classifier: nn.classifier.CarvanaClassifier, ds_tools: DatasetT
     classifier.predict(test_loader, to_file=output_file,
                        t_fnc=saver.get_prediction_transformer,
                        fnc_args=[origin_img_size, 0.5])  # The get_prediction_transformer arguments
-    print("Predictions wrote in {} file".format(output_file))

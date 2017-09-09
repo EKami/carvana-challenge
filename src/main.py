@@ -9,7 +9,7 @@ import utils
 def main():
     # Hyperparameters
     img_resize = (128, 128)  # (1024, 1024)
-    batch_size = 2
+    batch_size = 32
     epochs = 2
     threshold = 0.5
     n_fold = 3

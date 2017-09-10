@@ -62,9 +62,3 @@ class CacheDatasetWrapper(data.Dataset):
 
     def __len__(self):
         return len(self.dataset)
-
-
-def center_cropping_resize(img, new_size):
-    shortest = min(img.width, img.height)
-    resized = np.round(np.multiply(new_size / shortest, img.size)).astype(int)
-    return img.resize(resized, Image.BILINEAR)

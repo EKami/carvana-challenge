@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from PIL import Image
 
 
 def image_to_tensor(image, mean=0, std=1.):
@@ -34,3 +35,10 @@ def mask_to_tensor(mask, threshold):
     mask = (mask > threshold).astype(np.float32)
     tensor = torch.from_numpy(mask).type(torch.FloatTensor)
     return tensor
+
+
+def center_cropping_resize(img, new_size):
+    shortest = min(img.width, img.height)
+    resized = np.round(np.multiply(new_size / shortest, img.size)).astype(int)
+    return img.resize(resized, Image.BILINEAR)
+

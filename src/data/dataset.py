@@ -190,6 +190,7 @@ class TrainImageDataset(data.Dataset):
                 tuple: (image, target) where target is class_index of the target class.
         """
         img = Image.open(self.X_train[index])
+        # img = transformer.center_cropping_resize(img, self.img_resize)
         img = img.resize(self.img_resize, Image.ANTIALIAS)
         img = np.asarray(img.convert("RGB"), dtype=np.float32)
 

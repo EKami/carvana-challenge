@@ -38,7 +38,17 @@ def mask_to_tensor(mask, threshold):
 
 
 def center_cropping_resize(img, new_size):
-    shortest = min(img.width, img.height)
-    resized = np.round(np.multiply(new_size / shortest, img.size)).astype(int)
-    return img.resize(resized, Image.BILINEAR)
+    """
+        Resize an image and keep its aspect ratio
+    Args:
+        img (Image): The Pillow image to resize
+        new_size (tuple): The size as tuple (h, w)
+
+    Returns:
+        Image: The resized image
+    """
+    largest = max(img.width, img.height)
+    new_h = np.round(np.multiply(new_size[0] / largest, img.size[0])).astype(int)
+    new_w = np.round(np.multiply(new_size[1] / largest, img.size[1])).astype(int)
+    return img.resize((new_h, new_w), Image.ANTIALIAS)
 

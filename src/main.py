@@ -21,12 +21,15 @@ import data.saver as saver
 
 
 def main():
+    # Clear output dirs first
+    utils.clear_output_dirs()
+
     # Hyperparameters
     img_resize = (1024, 1024)
-    batch_size = 2
-    epochs = 70
+    batch_size = 3
+    epochs = 80
     threshold = 0.5
-    n_fold = 3
+    n_fold = 5
 
     # Optional parameters
     threads = cpu_count()
@@ -48,9 +51,6 @@ def main():
     #net = unet.UNet128((3, *img_resize))
     net = unet.UNet1024((3, *img_resize))
     classifier = nn.classifier.CarvanaClassifier(net, epochs_per_fold * n_fold)
-
-    # Clear output dirs
-    utils.clear_output_dirs()
 
     # Get the path to the files for the neural net
     # We don't want to split train/valid for crossval

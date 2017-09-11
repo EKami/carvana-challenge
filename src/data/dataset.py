@@ -190,13 +190,12 @@ class TrainImageDataset(data.Dataset):
                 tuple: (image, target) where target is class_index of the target class.
         """
         img = Image.open(self.X_train[index])
-        # img = transformer.center_cropping_resize(img, self.img_resize)
-        img = img.resize(self.img_resize, Image.ANTIALIAS)
+        img = transformer.center_cropping_resize(img, self.img_resize)
         img = np.asarray(img.convert("RGB"), dtype=np.float32)
 
         # Pillow reads gifs
         mask = Image.open(self.y_train_masks[index])
-        mask = mask.resize(self.img_resize, Image.ANTIALIAS)
+        mask = transformer.center_cropping_resize(mask, self.img_resize)
         mask = np.asarray(mask.convert("L"), dtype=np.float32)  # GreyScale
 
         if self.X_transform:
@@ -235,7 +234,7 @@ class TestImageDataset(data.Dataset):
         """
         img_path = self.X_train[index]
         img = Image.open(img_path)
-        img = img.resize(self.img_resize, Image.ANTIALIAS)
+        img = transformer.center_cropping_resize(img, self.img_resize)
         img = np.asarray(img.convert("RGB"), dtype=np.float32)
 
         img = transformer.image_to_tensor(img)

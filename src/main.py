@@ -26,8 +26,7 @@ def main():
     utils.clear_output_dirs()
 
     # Hyperparameters
-    img_resize = (1024, 1024)
-    batch_size = 3
+    batch_size = 1
     epochs = 100
     threshold = 0.5
     n_fold = 5
@@ -52,14 +51,12 @@ def main():
     # -- Computed parameters
     # Get the original images size (assuming they are all the same size)
     origin_img_size = ds_tools.get_image_size(full_x_train[0])
-    # The image kept its aspect ratio so we need to recalculate the img size for the nn
-    img_resize_centercrop = transformer.get_center_crop_size(full_x_train[0], img_resize)
     # Calculate epoch per fold for cross validation
     epochs_per_fold = np.maximum(1, np.round(epochs / n_fold).astype(int))
 
     # Define our nn architecture
     #net = unet.UNet128((3, *img_resize))
-    net = unet.UNet1024((3, *img_resize_centercrop))
+    net = unet.UNet1024((3, *origin_img_size))
     classifier = nn.classifier.CarvanaClassifier(net, epochs_per_fold * n_fold)
 
     # Launch the training on k folds
@@ -69,13 +66,13 @@ def main():
         X_valid = full_x_train[valid_indexes]
         y_valid = full_y_train[valid_indexes]
 
-        train_ds = TrainImageDataset(X_train, y_train, img_resize, X_transform=aug.augment_img)
+        train_ds = TrainImageDataset(X_train, y_train, origin_img_size, X_transform=aug.augment_img)
         train_loader = DataLoader(train_ds, batch_size,
                                   sampler=RandomSampler(train_ds),
                                   num_workers=threads,
                                   pin_memory=use_cuda)
 
-        valid_ds = TrainImageDataset(X_valid, y_valid, img_resize, threshold=threshold)
+        valid_ds = TrainImageDataset(X_valid, y_valid, origin_img_size, threshold=threshold)
         valid_loader = DataLoader(valid_ds, batch_size,
                                   sampler=SequentialSampler(valid_ds),
                                   num_workers=threads,
@@ -87,7 +84,7 @@ def main():
 
         classifier.train(train_loader, valid_loader, epochs_per_fold, callbacks=[tb_viz_cb])
 
-    test_ds = TestImageDataset(full_x_test, img_resize)
+    test_ds = TestImageDataset(full_x_test, origin_img_size)
     test_loader = DataLoader(test_ds, batch_size,
                              sampler=SequentialSampler(test_ds),
                              num_workers=threads,

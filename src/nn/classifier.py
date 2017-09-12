@@ -72,6 +72,7 @@ class CarvanaClassifier:
         # Total training files count / batch_size
         batch_size = train_loader.batch_size
         it_count = len(train_loader)
+        num_grad_acc = 31  # Every 32 "batches"
         with tqdm(total=it_count,
                   desc="Epochs {}/{}".format(self.epoch_counter + 1, self.max_epochs),
                   bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{remaining}{postfix}]'
@@ -90,9 +91,13 @@ class CarvanaClassifier:
 
                 # backward + optimize
                 loss = self._criterion(logits, target)
-                optimizer.zero_grad()
+                # accumulate gradients
+                if ind == 0:
+                    optimizer.zero_grad()
                 loss.backward()
-                optimizer.step()
+                if ind % num_grad_acc == 0:
+                    optimizer.step()
+                    optimizer.zero_grad()  # assume no effects on bn for accumulating grad
 
                 # print statistics
                 acc = losses_utils.dice_loss(pred, target)

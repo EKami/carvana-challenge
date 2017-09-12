@@ -67,6 +67,53 @@ def random_horizontal_flip(image, mask, u=0.5):
     return image, mask
 
 
+def random_saturation(img, limit=(-0.3, 0.3), u=0.5):
+    if np.random.random() < u:
+        alpha = 1.0 + np.random.uniform(limit[0], limit[1])
+        coef = np.array([[[0.114, 0.587, 0.299]]])
+        gray = img * coef
+        gray = np.sum(gray, axis=2, keepdims=True)
+        img = alpha * img + (1. - alpha) * gray
+        img = np.clip(img, 0., 1.)
+    return img
+
+
+def random_brightness(img, limit=(-0.3, 0.3), u=0.5):
+    if np.random.random() < u:
+        alpha = 1.0 + np.random.uniform(limit[0], limit[1])
+        img = alpha * img
+        img = np.clip(img, 0., 1.)
+    return img
+
+
+def random_gray(img, u=0.5):
+    if np.random.random() < u:
+        coef = np.array([[[0.114, 0.587, 0.299]]])  # rgb to gray (YCbCr)
+        gray = np.sum(img * coef, axis=2)
+        img = np.dstack((gray, gray, gray))
+    return img
+
+
+def random_contrast(img, limit=(-0.3, 0.3), u=0.5):
+    if np.random.random() < u:
+        alpha = 1.0 + np.random.uniform(limit[0], limit[1])
+        coef = np.array([[[0.114, 0.587, 0.299]]])  # rgb to gray (YCbCr)
+        gray = img * coef
+        gray = (3.0 * (1.0 - alpha) / gray.size) * np.sum(gray)
+        img = alpha * img + gray
+        img = np.clip(img, 0., 1.)
+    return img
+
+
+def random_channel_shift(x, limit, channel_axis=2):
+    x = np.rollaxis(x, channel_axis, 0)
+    min_x, max_x = np.min(x), np.max(x)
+    channel_images = [np.clip(x_ch + np.random.uniform(-limit, limit), min_x, max_x) for x_ch in x]
+    x = np.stack(channel_images, axis=0)
+    x = np.rollaxis(x, 0, channel_axis + 1)
+    return x
+
+
 def augment_img(img, mask):
     img = random_hue_saturation_value(img,
                                       hue_shift_limit=(-50, 50),
@@ -77,4 +124,9 @@ def augment_img(img, mask):
                                           scale_limit=(-0.1, 0.1),
                                           rotate_limit=(-0, 0))
     img, mask = random_horizontal_flip(img, mask)
+    # img = random_channel_shift(img, limit=0.05)
+    # img = random_brightness(img, limit=(-0.5, 0.5), u=0.5)
+    # img = random_contrast(img, limit=(-0.5, 0.5), u=0.5)
+    # img = random_saturation(img, limit=(-0.5, 0.5), u=0.5)
+    # img = random_gray(img, u=0.2)
     return img, mask

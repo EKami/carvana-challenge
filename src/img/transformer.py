@@ -52,3 +52,10 @@ def center_cropping_resize(img, new_size):
     new_w = np.round(np.multiply(new_size[1] / largest, img.size[1])).astype(int)
     return img.resize((new_h, new_w), Image.ANTIALIAS)
 
+
+def get_center_crop_size(img_path, img_size):
+    img = Image.open(img_path)
+    largest = max(img.width, img.height)
+    new_h = np.round(np.multiply(img_size[0] / largest, img.size[0])).astype(int)
+    new_w = np.round(np.multiply(img_size[1] / largest, img.size[1])).astype(int)
+    return new_h, new_w

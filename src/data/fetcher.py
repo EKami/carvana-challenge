@@ -4,7 +4,7 @@ import numpy as np
 from PIL import Image
 from sklearn.model_selection import train_test_split
 
-from downloader import KaggleDataDownloader
+from kaggle_data.downloader import KaggleDataDownloader
 
 
 class DatasetFetcher:

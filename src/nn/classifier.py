@@ -188,14 +188,14 @@ class CarvanaClassifier:
         it_count = len(test_loader)
 
         with tqdm(total=it_count, desc="Classifying") as pbar:
-            for ind, (images, files_name) in enumerate(test_loader):
+            for ind, (inputs, files_name) in enumerate(test_loader):
                 if self.use_cuda:
-                    images = images.cuda()
+                    inputs = inputs.cuda()
 
-                images = Variable(images, volatile=True)
+                inputs = Variable(inputs, volatile=True)
 
                 # forward
-                logits = self.net(images)
+                logits = self.net(inputs)
                 probs = F.sigmoid(logits)
                 probs = probs.data.cpu().numpy()
 
@@ -204,6 +204,7 @@ class CarvanaClassifier:
                     for cb in callbacks:
                         cb(step_name="predict",
                            net=self.net,
+                           inputs=inputs,
                            probs=probs,
                            files_name=files_name
                            )

@@ -28,10 +28,10 @@ def main():
     # Hyperparameters
     img_resize = (1024, 1024)
     batch_size = 3
-    epochs = 100
+    epochs = 3 #100
     threshold = 0.5
-    n_fold = 5
-    sample_size = None  # Put None to work on full dataset
+    n_fold = 3 #5
+    sample_size = 0.2 #None  # Put None to work on full dataset
 
     # -- Optional parameters
     threads = cpu_count()
@@ -63,6 +63,7 @@ def main():
     epochs_per_fold = np.maximum(1, np.round(epochs / n_fold).astype(int))
 
     # Testing callbacks
+    pred_pseudo_labels_cb = PredictionsSaverCallback(None, origin_img_size, threshold)
     pred_saver_cb = PredictionsSaverCallback(os.path.join(script_dir, '../output/submit.csv.gz'),
                                              origin_img_size, threshold)
 
@@ -103,6 +104,43 @@ def main():
                              sampler=SequentialSampler(test_ds),
                              num_workers=threads,
                              pin_memory=use_cuda)
+
+    # Predict & pseudo label
+    classifier.predict(test_loader, callbacks=[pred_pseudo_labels_cb])
+    predictions = pred_pseudo_labels_cb.get_predictions()
+
+    # TODO append predictions to train set
+    for (name, mask) in predictions:
+        full_x_train.append()
+        full_y_train.append()
+
+    # Launch the training on k folds with pseudo labels
+    for i, (train_indexes, valid_indexes) in enumerate(kf.split(full_x_train)):
+        X_train = full_x_train[train_indexes]
+        y_train = full_y_train[train_indexes]
+        X_valid = full_x_train[valid_indexes]
+        y_valid = full_y_train[valid_indexes]
+
+        train_ds = TrainImageDataset(X_train, y_train, img_resize, X_transform=aug.augment_img)
+        train_loader = DataLoader(train_ds, batch_size,
+                                  sampler=RandomSampler(train_ds),
+                                  num_workers=threads,
+                                  pin_memory=use_cuda)
+
+        valid_ds = TrainImageDataset(X_valid, y_valid, img_resize, threshold=threshold)
+        valid_loader = DataLoader(valid_ds, batch_size,
+                                  sampler=SequentialSampler(valid_ds),
+                                  num_workers=threads,
+                                  pin_memory=use_cuda)
+
+        if i == 0:
+            print("Training on {} samples and validating on {} samples "
+                  .format(len(train_loader.dataset), len(valid_loader.dataset)))
+
+        model_saver_cb.set_suffix("_pseudo_label_kfold_" + str(i + 1))
+        classifier.train(train_loader, valid_loader, epochs_per_fold,
+                         callbacks=[tb_viz_cb, tb_logs_cb, model_saver_cb])
+        print("KFold {} finished.".format(str(i + 1)))
 
     # Predict & save
     classifier.predict(test_loader, callbacks=[pred_saver_cb])

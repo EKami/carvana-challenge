@@ -1,4 +1,5 @@
 import cv2
+import torch
 import numpy as np
 import scipy.misc as scipy
 from tensorboardX import SummaryWriter
@@ -65,6 +66,9 @@ class TensorboardVisualizerCallback(Callback):
         return results
 
     def __call__(self, *args, **kwargs):
+        if kwargs['step_name'] != "epoch":
+            return
+
         epoch_id = kwargs['epoch_id']
         last_images, last_targets, last_preds = kwargs['last_val_batch']
         writer = SummaryWriter(self.path_to_files)
@@ -82,8 +86,8 @@ class TensorboardVisualizerCallback(Callback):
 
             expected_result = self._get_mask_representation(image, target_mask)
             pred_result = self._get_mask_representation(image, pred_mask)
-            writer.add_image("Epoch_"+str(epoch_id)+'-Image_'+str(i+1)+'-Expected', expected_result, epoch_id)
-            writer.add_image("Epoch_" + str(epoch_id)+'-Image_' + str(i+1)+'-Predicted', pred_result, epoch_id)
+            writer.add_image("Epoch_" + str(epoch_id) + '-Image_' + str(i + 1) + '-Expected', expected_result, epoch_id)
+            writer.add_image("Epoch_" + str(epoch_id) + '-Image_' + str(i + 1) + '-Predicted', pred_result, epoch_id)
             if i == 1:  # 2 Images are sufficient
                 break
         writer.close()
@@ -102,6 +106,9 @@ class TensorboardLoggerCallback(Callback):
         self.path_to_files = path_to_files
 
     def __call__(self, *args, **kwargs):
+        if kwargs['step_name'] != "epoch":
+            return
+
         epoch_id = kwargs['epoch_id']
 
         writer = SummaryWriter(self.path_to_files)
@@ -110,3 +117,36 @@ class TensorboardLoggerCallback(Callback):
         writer.add_scalar('data/val_loss', kwargs['val_loss'], epoch_id)
         writer.add_scalar('data/val_acc', kwargs['val_acc'], epoch_id)
         writer.close()
+
+
+class ModelSaverCallback(Callback):
+    def __init__(self, path_to_model, verbose=False):
+        """
+            Callback intended to be executed each time a whole train pass
+            get finished. This callback saves the model in the given path
+        Args:
+            verbose (bool): True or False to make the callback verbose
+            path_to_model (str): The path where to store the model
+        """
+        self.verbose = verbose
+        self.path_to_model = path_to_model
+        self.suffix = ""
+
+    def set_suffix(self, suffix):
+        """
+
+        Args:
+            suffix (str): The suffix to append to the model file name
+        """
+        self.suffix = suffix
+
+    def __call__(self, *args, **kwargs):
+        if kwargs['step_name'] != "train":
+            return
+
+        pth = self.path_to_model + self.suffix
+        net = kwargs['net']
+        torch.save(net.state_dict(), pth)
+
+        if self.verbose:
+            print("Model saved in {}".format(pth))

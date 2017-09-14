@@ -1,6 +1,6 @@
 import torch.utils.data as data
 import numpy as np
-import h5py
+import bcolz
 
 
 #
@@ -53,11 +53,9 @@ class CacheDatasetWrapper(data.Dataset):
                 preprocessed_obj = self.dataset[index][i]
                 curr_dset[index] = preprocessed_obj.numpy()
                 ret[i] = preprocessed_obj
-                d = 0
             else:  # If the record has been found in cache
-                #print("Data retrieved from cache!")
+                # print("Data retrieved from cache!")
                 ret[i] = curr_dset_type(curr_dset[index])  # cast file in the original type
-                d = 0
 
         return ret
 

@@ -97,7 +97,7 @@ class DatasetTools:
         img = Image.open(image)
         return img.size
 
-    def get_train_valid_split(self, validation_size=0.2, sample_size=None):
+    def get_train_files(self, validation_size=0.2, sample_size=None):
         """
 
         Args:
@@ -119,7 +119,11 @@ class DatasetTools:
             rnd = np.random.choice(self.train_ids, int(len(self.train_ids) * sample_size))
             train_ids = rnd.ravel()
 
-        ids_train_split, ids_valid_split = train_test_split(train_ids, test_size=validation_size)
+        if validation_size:
+            ids_train_split, ids_valid_split = train_test_split(train_ids, test_size=validation_size)
+        else:
+            ids_train_split = train_ids
+            ids_valid_split = []
 
         train_ret = []
         train_masks_ret = []
@@ -186,12 +190,12 @@ class TrainImageDataset(data.Dataset):
                 tuple: (image, target) where target is class_index of the target class.
         """
         img = Image.open(self.X_train[index])
-        img = img.resize(self.img_resize, Image.ANTIALIAS)
+        img = transformer.center_cropping_resize(img, self.img_resize)
         img = np.asarray(img.convert("RGB"), dtype=np.float32)
 
         # Pillow reads gifs
         mask = Image.open(self.y_train_masks[index])
-        mask = mask.resize(self.img_resize, Image.ANTIALIAS)
+        mask = transformer.center_cropping_resize(mask, self.img_resize)
         mask = np.asarray(mask.convert("L"), dtype=np.float32)  # GreyScale
 
         if self.X_transform:
@@ -230,7 +234,7 @@ class TestImageDataset(data.Dataset):
         """
         img_path = self.X_train[index]
         img = Image.open(img_path)
-        img = img.resize(self.img_resize, Image.ANTIALIAS)
+        img = transformer.center_cropping_resize(img, self.img_resize)
         img = np.asarray(img.convert("RGB"), dtype=np.float32)
 
         img = transformer.image_to_tensor(img)

@@ -15,18 +15,15 @@ import helpers
 
 
 class CarvanaClassifier:
-    def __init__(self, net, max_epochs, save_path=None):
+    def __init__(self, net, max_epochs):
         """
         The classifier for carvana used for training and launching predictions
         Args:
-            save_path (str, None): Path where to save the model. The model is not
-                saved if None is provided
             net (nn.Module): The neural net module containing the definition of your model
             max_epochs (int): The maximum number of epochs on which the model will train
         """
         self.net = net
         self.max_epochs = max_epochs
-        self.save_path = save_path
         self.epoch_counter = 0
         self.use_cuda = torch.cuda.is_available()
 
@@ -138,7 +135,8 @@ class CarvanaClassifier:
         # If there are callback call their __call__ method and pass in some arguments
         if callbacks:
             for cb in callbacks:
-                cb(net=self.net,
+                cb(step_name="epoch",
+                   net=self.net,
                    last_val_batch=(last_images, last_targets, last_preds),
                    epoch_id=self.epoch_counter + 1,
                    train_loss=train_loss, train_acc=train_acc,
@@ -150,12 +148,10 @@ class CarvanaClassifier:
         self.epoch_counter += 1
 
     def train(self, train_loader: DataLoader, valid_loader: DataLoader,
-              epochs, threshold=0.5, callbacks=None, train_pass_name=None):
+              epochs, threshold=0.5, callbacks=None):
         """
             Trains the neural net
         Args:
-            train_pass_name (str): A name to give to the train pass, if given
-                it will be appended to the saved model file name
             train_loader (DataLoader): The Dataloader for training
             valid_loader (DataLoader): The Dataloader for validation
             epochs (int): number of epochs
@@ -172,13 +168,13 @@ class CarvanaClassifier:
         for epoch in range(epochs):
             self._run_epoch(train_loader, valid_loader, optimizer, lr_scheduler, threshold, callbacks)
 
-        if self.save_path:
-            pth = self.save_path
-            if train_pass_name:
-                pth += "_" + train_pass_name
-            torch.save(self.net.state_dict(), pth)
-            return pth
-        return None
+        # If there are callback call their __call__ method and pass in some arguments
+        if callbacks:
+            for cb in callbacks:
+                cb(step_name="train",
+                   net=self.net,
+                   epoch_id=self.epoch_counter + 1,
+                   )
 
     def predict(self, test_loader, to_file=None, t_fnc=None, fnc_args=None):
         """

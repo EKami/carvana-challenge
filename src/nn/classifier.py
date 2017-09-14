@@ -9,8 +9,6 @@ from tqdm import tqdm
 from collections import OrderedDict
 
 import nn.losses as losses_utils
-import gzip
-import csv
 import helpers
 
 
@@ -176,34 +174,18 @@ class CarvanaClassifier:
                    epoch_id=self.epoch_counter + 1,
                    )
 
-    def predict(self, test_loader, to_file=None, t_fnc=None, fnc_args=None):
+    def predict(self, test_loader, callbacks=None):
         """
-            Launch the prediction on the given loader and periodically
-            store them in a csv file with gz compression if to_file is given.
-            The results are stored in a list otherwise.
+            Launch the prediction on the given loader and pass
+            each predictions to the given callbacks.
         Args:
             test_loader (DataLoader): The loader containing the test dataset
-            to_file (str): A gz file path or None if you want to get the prediction as array
-            t_fnc (function): A transformer function which takes in a single prediction array and
-                    return a transformed result. The signature of the function must be:
-                    t_fnc(prediction, *fnc_args) -> (transformed_prediction)
-            fnc_args (list): A list of arguments to pass to t_fnc
-
-        Returns:
-            list: The prediction array (empty if to_file is given)
+            callbacks (list): List of callbacks functions to call at prediction pass
         """
         # Switch to evaluation mode
         self.net.eval()
 
         it_count = len(test_loader)
-        predictions = []
-        file = None
-        writer = None
-
-        if to_file:
-            file = gzip.open(to_file, "wt", newline="")
-            writer = csv.writer(file)
-            writer.writerow(["img", "rle_mask"])
 
         with tqdm(total=it_count, desc="Classifying") as pbar:
             for ind, (images, files_name) in enumerate(test_loader):
@@ -215,25 +197,15 @@ class CarvanaClassifier:
                 # forward
                 logits = self.net(images)
                 probs = F.sigmoid(logits)
+                probs = probs.data.cpu().numpy()
 
-                # Save the predictions
-                for (pred, name) in zip(probs, files_name):
-                    pred_arr = pred.data.cpu().numpy()
-
-                    # Execute the transformer function
-                    if t_fnc:
-                        pred_arr = t_fnc(pred_arr, *fnc_args)
-
-                    if file:
-                        writer.writerow([name, pred_arr])
-                    else:
-                        predictions.append((name, pred_arr))
+                # If there are callback call their __call__ method and pass in some arguments
+                if callbacks:
+                    for cb in callbacks:
+                        cb(step_name="predict",
+                           net=self.net,
+                           probs=probs,
+                           files_name=files_name
+                           )
 
                 pbar.update(1)
-
-        if file:
-            file.flush()
-            file.close()
-            print("Predictions wrote in {} file".format(to_file))
-
-        return predictions

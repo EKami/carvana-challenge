@@ -11,21 +11,33 @@ from collections import OrderedDict
 import nn.losses as losses_utils
 import gzip
 import csv
-import utils
+import helpers
 
 
 class CarvanaClassifier:
-    def __init__(self, net, max_epochs):
+    def __init__(self, net, max_epochs, save_path=None):
         """
         The classifier for carvana used for training and launching predictions
         Args:
+            save_path (str, None): Path where to save the model. The model is not
+                saved if None is provided
             net (nn.Module): The neural net module containing the definition of your model
             max_epochs (int): The maximum number of epochs on which the model will train
         """
         self.net = net
         self.max_epochs = max_epochs
+        self.save_path = save_path
         self.epoch_counter = 0
         self.use_cuda = torch.cuda.is_available()
+
+    def restore_model(self, model_path):
+        """
+            Restore a model parameters from the one given in argument
+        Args:
+            model_path (str): The path to the model to restore
+
+        """
+        self.net.load_state_dict(torch.load(model_path))
 
     def _criterion(self, logits, labels):
         l = losses_utils.BCELoss2d().forward(logits, labels) + losses_utils.SoftDiceLoss().forward(logits, labels)
@@ -105,7 +117,7 @@ class CarvanaClassifier:
                 pbar.update(1)
         return losses.avg, accuracies.avg
 
-    @utils.st_time(show_func_name=False)
+    @helpers.st_time(show_func_name=False)
     def _run_epoch(self, train_loader: DataLoader, valid_loader: DataLoader,
                    optimizer, lr_scheduler, threshold=0.5, callbacks=None):
         # switch to train mode
@@ -138,15 +150,19 @@ class CarvanaClassifier:
         self.epoch_counter += 1
 
     def train(self, train_loader: DataLoader, valid_loader: DataLoader,
-              epochs, threshold=0.5, callbacks=None):
+              epochs, threshold=0.5, callbacks=None, train_pass_name=None):
         """
             Trains the neural net
         Args:
+            train_pass_name (str): A name to give to the train pass, if given
+                it will be appended to the saved model file name
             train_loader (DataLoader): The Dataloader for training
             valid_loader (DataLoader): The Dataloader for validation
             epochs (int): number of epochs
             threshold (float): The threshold used to consider the mask present or not
             callbacks (list): List of callbacks functions to call at each epoch
+        Returns:
+            str, None: The path where the model was saved, or None if it wasn't saved
         """
         if self.use_cuda:
             self.net.cuda()
@@ -155,6 +171,14 @@ class CarvanaClassifier:
 
         for epoch in range(epochs):
             self._run_epoch(train_loader, valid_loader, optimizer, lr_scheduler, threshold, callbacks)
+
+        if self.save_path:
+            pth = self.save_path
+            if train_pass_name:
+                pth += "_" + train_pass_name
+            torch.save(self.net.state_dict(), pth)
+            return pth
+        return None
 
     def predict(self, test_loader, to_file=None, t_fnc=None, fnc_args=None):
         """

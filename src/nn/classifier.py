@@ -118,10 +118,10 @@ class CarvanaClassifier:
         self.net.eval()
 
         # Run the validation pass
-        valid_loss, valid_acc, last_images, last_targets, last_preds = self._validate_epoch(valid_loader, threshold)
+        val_loss, val_acc, last_images, last_targets, last_preds = self._validate_epoch(valid_loader, threshold)
 
         # Reduce learning rate if needed
-        lr_scheduler.step(valid_loss, self.epoch_counter)
+        lr_scheduler.step(val_loss, self.epoch_counter)
 
         # If there are callback call their __call__ method and pass in some arguments
         if callbacks:
@@ -130,11 +130,11 @@ class CarvanaClassifier:
                    last_val_batch=(last_images, last_targets, last_preds),
                    epoch_id=self.epoch_counter + 1,
                    train_loss=train_loss, train_acc=train_acc,
-                   valid_loss=valid_loss, valid_acc=valid_acc
+                   val_loss=val_loss, val_acc=val_acc
                    )
         print("train_loss = {:03f}, train_acc = {:03f}\n"
               "val_loss   = {:03f}, val_acc   = {:03f}"
-              .format(train_loss, train_acc, valid_loss, valid_acc))
+              .format(train_loss, train_acc, val_loss, val_acc))
         self.epoch_counter += 1
 
     def train(self, train_loader: DataLoader, valid_loader: DataLoader,

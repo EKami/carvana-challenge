@@ -9,7 +9,7 @@ from torch.utils.data.sampler import RandomSampler, SequentialSampler
 import img.augmentation as aug
 from data.dataset import DatasetTools
 import nn.classifier
-from nn.callbacks import TensorboardVisualizerCallback
+from nn.callbacks import TensorboardVisualizerCallback, TensorboardLoggerCallback
 
 import os
 import numpy as np
@@ -28,7 +28,7 @@ def main():
     # Hyperparameters
     img_resize = (1024, 1024)
     batch_size = 3
-    epochs = 100
+    epochs = 200
     threshold = 0.5
     n_fold = 5
 
@@ -37,6 +37,7 @@ def main():
     use_cuda = torch.cuda.is_available()
     script_dir = os.path.dirname(os.path.abspath(__file__))
     tb_viz_cb = TensorboardVisualizerCallback(os.path.join(script_dir, '../logs/tb_viz'))
+    tb_logs_cb = TensorboardLoggerCallback(os.path.join(script_dir, '../logs/tb_logs'))
     kf = KFold(n_splits=n_fold, shuffle=True)
     sample_size = 0.2 # None  # Put None to work on full dataset
 
@@ -85,7 +86,7 @@ def main():
             print("Training on {} samples and validating on {} samples "
                   .format(len(train_loader.dataset), len(valid_loader.dataset)))
 
-        classifier.train(train_loader, valid_loader, epochs_per_fold, callbacks=[tb_viz_cb])
+        classifier.train(train_loader, valid_loader, epochs_per_fold, callbacks=[tb_viz_cb, tb_logs_cb])
 
     test_ds = TestImageDataset(full_x_test, img_resize)
     test_loader = DataLoader(test_ds, batch_size,

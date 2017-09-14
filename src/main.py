@@ -91,7 +91,6 @@ def main():
         pth = classifier.train(train_loader, valid_loader, epochs_per_fold,
                                callbacks=[tb_viz_cb, tb_logs_cb], train_pass_name="kfold_" + str(i+1))
         print("KFold {} finished. Model saved in {}".format(str(i+1), pth))
-        classifier.restore_model(pth)
 
     test_ds = TestImageDataset(full_x_test, img_resize)
     test_loader = DataLoader(test_ds, batch_size,

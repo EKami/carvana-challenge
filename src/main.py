@@ -36,9 +36,9 @@ def main():
     threads = cpu_count()
     use_cuda = torch.cuda.is_available()
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    tb_viz_cb = TensorboardVisualizerCallback(os.path.join(script_dir, '../logs'))
+    tb_viz_cb = TensorboardVisualizerCallback(os.path.join(script_dir, '../logs/tb_viz'))
     kf = KFold(n_splits=n_fold, shuffle=True)
-    sample_size = None  # Put None to work on full dataset
+    sample_size = 0.2 # None  # Put None to work on full dataset
 
     # Download the datasets
     ds_tools = DatasetTools()

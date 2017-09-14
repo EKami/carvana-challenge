@@ -16,9 +16,9 @@ class TensorboardVisualizerCallback(Callback):
             of the training which goal is to display the result
             of the last validation batch in Tensorboard
         Args:
-            path_to_files:
+            path_to_files (str): The path where to store the log files
         """
-        self.writer = SummaryWriter(path_to_files)
+        self.path_to_files = path_to_files
 
     def _apply_mask_overlay(self, image, mask, color=(0, 255, 0)):
         mask = np.dstack((mask, mask, mask)) * np.array(color)
@@ -66,8 +66,9 @@ class TensorboardVisualizerCallback(Callback):
 
     def __call__(self, *args, **kwargs):
         epoch_id = kwargs['epoch_id']
-
         last_images, last_targets, last_preds = kwargs['last_val_batch']
+        self.writer = SummaryWriter(self.path_to_files)
+
         for i, (image, target_mask, pred_mask) in enumerate(zip(last_images, last_targets, last_preds)):
 
             image = image.data.float().cpu().numpy().astype(np.uint8)
@@ -85,4 +86,16 @@ class TensorboardVisualizerCallback(Callback):
             self.writer.add_image("Epoch_" + str(epoch_id)+'-Image_' + str(i+1)+'-Predicted', pred_result, epoch_id)
             if i == 1:  # 2 Images are sufficient
                 break
-        #self.writer.close()
+        self.writer.close()
+
+
+class TensorboardLoggerCallback(Callback):
+    def __init__(self, path_to_files):
+        """
+            Callback intended to be executed at each epoch
+            of the training which goal is to display the result
+            of the last validation batch in Tensorboard
+        Args:
+            path_to_files (str): The path where to store the log files
+        """
+        pass

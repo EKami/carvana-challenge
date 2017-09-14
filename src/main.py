@@ -27,10 +27,11 @@ def main():
 
     # Hyperparameters
     batch_size = 1
-    epochs = 100
+    epochs = 80
     threshold = 0.5
     n_fold = 5
 
+    # TODO save MODEL!!
     # Optional parameters
     threads = cpu_count()
     use_cuda = torch.cuda.is_available()
@@ -56,7 +57,7 @@ def main():
 
     # Define our nn architecture
     #net = unet.UNet128((3, *img_resize))
-    net = unet.UNet1024((3, *origin_img_size))
+    net = unet.UNetFHD((3, *origin_img_size))
     classifier = nn.classifier.CarvanaClassifier(net, epochs_per_fold * n_fold)
 
     # Launch the training on k folds

@@ -72,7 +72,8 @@ class CarvanaClassifier:
         # Total training files count / batch_size
         batch_size = train_loader.batch_size
         it_count = len(train_loader)
-        num_grad_acc = 31  # Every 32 "batches"
+        num_grad_acc = 4  # Every 4 "batches"
+        optimizer.zero_grad()
         with tqdm(total=it_count,
                   desc="Epochs {}/{}".format(self.epoch_counter + 1, self.max_epochs),
                   bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{remaining}{postfix}]'
@@ -91,16 +92,12 @@ class CarvanaClassifier:
 
                 # backward + optimize
                 loss = self._criterion(logits, target)
+                acc = losses_utils.dice_loss(pred, target)
                 # accumulate gradients
-                if ind == 0:
-                    optimizer.zero_grad()
                 loss.backward()
-                if ind % num_grad_acc == 0:
+                if (ind+1) % num_grad_acc == 0:
                     optimizer.step()
                     optimizer.zero_grad()  # assume no effects on bn for accumulating grad
-
-                # print statistics
-                acc = losses_utils.dice_loss(pred, target)
 
                 losses.update(loss.data[0], batch_size)
                 accuracies.update(acc.data[0], batch_size)
@@ -126,7 +123,7 @@ class CarvanaClassifier:
         valid_loss, valid_acc, last_images, last_targets, last_preds = self._validate_epoch(valid_loader, threshold)
 
         # Reduce learning rate if needed
-        lr_scheduler.step(valid_loss, self.epoch_counter)
+        #lr_scheduler.step(valid_loss, self.epoch_counter)
 
         # If there are callback call their __call__ method and pass in some arguments
         if callbacks:

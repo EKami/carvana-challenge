@@ -28,9 +28,9 @@ def main():
     # Hyperparameters
     img_resize = (1024, 1024)
     batch_size = 3
-    epochs = 3
+    epochs = 100
     threshold = 0.5
-    n_fold = 3
+    n_fold = 5
 
     # Optional parameters
     threads = cpu_count()

@@ -101,7 +101,7 @@ class DatasetFetcher:
         """
 
         Args:
-            validation_size (int):
+            validation_size (float):
                  Value between 0 and 1
             sample_size (float, None):
                 Value between 0 and 1 or None.

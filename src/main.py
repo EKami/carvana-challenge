@@ -1,5 +1,6 @@
 import nn.classifier
 import nn.unet as unet
+import nn.unet_origin as unet_origin
 import helpers
 
 import torch
@@ -28,7 +29,7 @@ def main():
     # Hyperparameters
     img_resize = (1024, 1024)
     batch_size = 3
-    epochs = 100
+    epochs = 200
     threshold = 0.5
     n_fold = 5
     sample_size = None  # Put None to work on full dataset
@@ -67,7 +68,7 @@ def main():
                                              origin_img_size, threshold)
 
     # Define our neural net architecture
-    net = unet.UNet1024((3, *img_resize_centercrop))
+    net = unet_origin.UNetOriginal((3, *img_resize_centercrop))
     classifier = nn.classifier.CarvanaClassifier(net, epochs_per_fold * n_fold)
 
     # Launch the training on k folds

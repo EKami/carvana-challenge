@@ -84,18 +84,52 @@ class UNetOriginal(nn.Module):
         # 1x1 convolution at the last layer
         self.output_seg_map = nn.Conv2d(64, 2, kernel_size=(1, 1), padding=0, stride=1)
 
+    def _crop_concat(self, upsampled, bypass):
+        """
+         Crop y to the (h, w) of x and concat them.
+         Used for the expansive path.
+        Returns:
+            The concatenated tensor
+        """
+        c = (bypass.size()[2] - upsampled.size()[2]) // 2
+        bypass = F.pad(bypass, (-c, -c, -c, -c))
+
+        return torch.cat((upsampled, bypass), 1)
+
     def forward(self, x):
-        x = self.maxPool1(self.down1(x))  # Calls the forward() method of each layer
-        x = self.maxPool2(self.down2(x))
-        x = self.maxPool3(self.down3(x))
-        x = self.maxPool4(self.down4(x))
+        x = self.down1(x)  # Calls the forward() method of each layer
+        out_down1 = x
+        x = self.maxPool1(x)
+
+        x = self.down2(x)
+        out_down2 = x
+        x = self.maxPool2(x)
+
+        x = self.down3(x)
+        out_down3 = x
+        x = self.maxPool3(x)
+
+        x = self.down4(x)
+        out_down4 = x
+        x = self.maxPool4(x)
 
         x = self.center(x)
 
-        x = self.up1(self.upSample1(x))
-        x = self.up2(self.upSample2(x))
-        x = self.up3(self.upSample3(x))
-        x = self.up4(self.upSample4(x))
+        x = self.upSample1(x)
+        x = self.up1(x)
+        self._crop_concat(x, out_down4)
+
+        x = self.upSample2(x)
+        x = self.up2(x)
+        self._crop_concat(x, out_down3)
+
+        x = self.upSample3(x)
+        x = self.up3(x)
+        self._crop_concat(x, out_down2)
+
+        x = self.upSample4(x)
+        x = self.up4(x)
+        self._crop_concat(x, out_down1)
 
         out = self.output_seg_map(x)
         return out

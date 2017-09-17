@@ -160,7 +160,7 @@ class CarvanaClassifier:
         """
         if self.use_cuda:
             self.net.cuda()
-        optimizer = optim.Adam(self.net.parameters())
+        optimizer = optim.SGD(self.net.parameters(), lr=0.01, momentum=0.99)
         lr_scheduler = ReduceLROnPlateau(optimizer, 'min', patience=2, verbose=True, min_lr=1e-7)
 
         for epoch in range(epochs):

@@ -11,26 +11,21 @@ class CrossEntropyLoss2d(nn.Module):
         return self.nll_loss(F.log_softmax(logits), targets)
 
 
-# https://github.com/bermanmaxim/jaccardSegment/blob/master/losses.py
-class StableBCELoss(nn.Module):
-    def __init__(self):
-        super(StableBCELoss, self).__init__()
-
-    def forward(self, input, target):
-        neg_abs = - input.abs()
-        loss = input.clamp(min=0) - input * target + (1 + neg_abs.exp()).log()
-        return loss.mean()
-
-
 class BCELoss2d(nn.Module):
     def __init__(self, weight=None, size_average=True):
+        """
+        Binary cross entropy loss 2D
+        Args:
+            weight:
+            size_average:
+        """
         super(BCELoss2d, self).__init__()
         self.bce_loss = nn.BCELoss(weight, size_average)
 
     def forward(self, logits, targets):
         probs = F.sigmoid(logits)
-        probs_flat = probs.view(-1)
-        targets_flat = targets.view(-1)
+        probs_flat = probs.view(-1)  # Flatten
+        targets_flat = targets.view(-1) # Flatten
         return self.bce_loss(probs_flat, targets_flat)
 
 

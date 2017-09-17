@@ -24,7 +24,7 @@ def main():
 
     # Hyperparameters
     img_resize = (572, 572)
-    batch_size = 4
+    batch_size = 1
     epochs = 200
     threshold = 0.5
     validation_size = 0.2

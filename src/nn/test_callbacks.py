@@ -2,6 +2,7 @@ import gzip
 import csv
 import cv2
 import numpy as np
+import bcolz
 
 
 class Callback:
@@ -9,27 +10,23 @@ class Callback:
         raise NotImplementedError
 
 
-class PredictionsSaverCallback(Callback):
+class KagglePredictionsSaverCallback(Callback):
     def __init__(self, to_file, origin_img_size, threshold):
         """
             Callback intended to be executed at each batch iteration of
             the prediction pass. It allows to save the predictions in
-            a compressed file or in an array
+            a compressed gzip csv file
         Args:
-            to_file (str, None): The file where to save the predictions.
-                If None is given, the predictions are saved in a numpy array
+            to_file (str): The file where to save the predictions
             origin_img_size (tuple): The original image size
             threshold (float): The threshold used to consider the mask present or not
         """
         self.threshold = threshold
         self.origin_img_size = origin_img_size
         self.to_file = to_file
-        if self.to_file:
-            self.file = gzip.open(to_file, "wt", newline="")
-            self.writer = csv.writer(self.file)
-            self.writer.writerow(["img", "rle_mask"])
-        else:
-            self.predictions = []
+        self.file = gzip.open(to_file, "wt", newline="")
+        self.writer = csv.writer(self.file)
+        self.writer.writerow(["img", "rle_mask"])
 
     # https://www.kaggle.com/stainsby/fast-tested-rle
     def run_length_encode(self, mask):
@@ -46,10 +43,6 @@ class PredictionsSaverCallback(Callback):
         rle = ' '.join([str(r) for r in runs])
         return rle
 
-    def _get_mask(self, prediction):
-        mask = cv2.resize(prediction, self.origin_img_size)
-        return mask > self.threshold
-
     def __call__(self, *args, **kwargs):
         if kwargs['step_name'] != "predict":
             return
@@ -58,12 +51,10 @@ class PredictionsSaverCallback(Callback):
         files_name = kwargs['files_name']
         # Save the predictions
         for (pred, name) in zip(probs, files_name):
-            mask = self._get_mask(pred)
+            mask = cv2.resize(pred, self.origin_img_size)
+            mask = mask > self.threshold
             rle = self.run_length_encode(mask)
-            if self.to_file:
-                self.writer.writerow([name, rle])
-            else:
-                self.predictions.append([name, mask])
+            self.writer.writerow([name, rle])
 
     def get_predictions(self):
         """
@@ -72,13 +63,52 @@ class PredictionsSaverCallback(Callback):
         Returns:
             (file, array): A file object or a numpy array
         """
-        if self.to_file:
-            return self.file
-        else:
-            return self.predictions
+        return self.file
 
     def close_saver(self):
-        if self.to_file:
-            self.file.flush()
-            self.file.close()
-            print("Predictions wrote in {} file".format(self.to_file))
+        self.file.flush()
+        self.file.close()
+        print("Predictions wrote in {} file".format(self.to_file))
+
+
+class BcolzPredictionsSaverCallback(Callback):
+    def __init__(self, to_file, origin_img_size):
+        self.origin_img_size = origin_img_size
+        self.to_file = to_file
+        self.bc_arr = None
+
+    def __call__(self, *args, **kwargs):
+        if kwargs['step_name'] != "predict":
+            return
+
+        probs = kwargs['probs']
+        files_name = kwargs['files_name']
+
+        pred_names = []
+        pred_arr = np.empty((len(probs), *self.origin_img_size), dtype=np.float32)
+        # Save the predictions to bcolz
+        for i, (pred, name) in enumerate(zip(probs, files_name)):
+            mask = cv2.resize(pred, self.origin_img_size)
+            pred_names.append(name)
+            pred_arr[i] = mask.T
+
+        pred_names = np.array(pred_names, dtype=str)
+        if self.bc_arr:
+            self.bc_arr[0].append(pred_names)
+            self.bc_arr[1].append(pred_arr)
+        else:
+            self.bc_arr = [bcolz.carray(pred_names,
+                                        cparams=bcolz.cparams(clevel=9, cname='blosclz', shuffle=bcolz.NOSHUFFLE),
+                                        rootdir=self.to_file + "_names.bc", mode='w'),
+                           bcolz.carray(pred_arr,
+                                        cparams=bcolz.cparams(clevel=9, cname='blosclz', shuffle=bcolz.NOSHUFFLE),
+                                        rootdir=self.to_file + "_arr.bc", mode='w')
+                           ]
+
+        for b in self.bc_arr:
+            b.flush()
+
+    def get_prediction_array(self):
+        bc_names = bcolz.open(rootdir=self.to_file + "_names.bc", mode='r')
+        bc_arr = bcolz.open(rootdir=self.to_file + "_arr.bc", mode='r')
+        return zip(bc_names, bc_arr)

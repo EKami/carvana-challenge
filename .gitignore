@@ -4,9 +4,10 @@ __pycache__/
 *$py.class
 .idea/
 input/
-output/
+output/submit.csv.gz
+output/models/
+output/predictions/
 logs/
-submit.csv.gz
 
 # C extensions
 *.so

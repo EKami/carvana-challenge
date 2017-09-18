@@ -24,6 +24,8 @@ class CarvanaClassifier:
         self.max_epochs = max_epochs
         self.epoch_counter = 0
         self.use_cuda = torch.cuda.is_available()
+        if self.use_cuda:
+            self.net.cuda()
 
     def restore_model(self, model_path):
         """
@@ -158,8 +160,6 @@ class CarvanaClassifier:
         Returns:
             str, None: The path where the model was saved, or None if it wasn't saved
         """
-        if self.use_cuda:
-            self.net.cuda()
         optimizer = optim.Adam(self.net.parameters())
         lr_scheduler = ReduceLROnPlateau(optimizer, 'min', patience=2, verbose=True, min_lr=1e-7)
 
@@ -174,6 +174,7 @@ class CarvanaClassifier:
                    epoch_id=self.epoch_counter + 1,
                    )
 
+    @helpers.st_time(show_func_name=False)
     def predict(self, test_loader, callbacks=None):
         """
             Launch the prediction on the given loader and pass

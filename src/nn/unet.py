@@ -24,36 +24,6 @@ class ConvBnRelu2d(nn.Module):
             x = self.relu(x)
         return x
 
-    def merge_bn(self):
-        if self.bn is None:
-            return
-
-        assert self.conv.bias is None
-        conv_weight = self.conv.weight.data
-        bn_weight = self.bn.weight.data
-        bn_bias = self.bn.bias.data
-        bn_running_mean = self.bn.running_mean
-        bn_running_var = self.bn.running_var
-        bn_eps = self.bn.eps
-
-        # https://github.com/sanghoon/pva-faster-rcnn/issues/5
-        # https://github.com/sanghoon/pva-faster-rcnn/commit/39570aab8c6513f0e76e5ab5dba8dfbf63e9c68c
-
-        N, C, KH, KW = conv_weight.size()
-        std = 1 / (torch.sqrt(bn_running_var + bn_eps))
-        std_bn_weight = (std * bn_weight).repeat(C * KH * KW, 1).t().contiguous().view(N, C, KH, KW)
-        conv_weight_hat = std_bn_weight * conv_weight
-        conv_bias_hat = (bn_bias - bn_weight * std * bn_running_mean)
-
-        self.bn = None
-        self.conv = nn.Conv2d(in_channels=self.conv.in_channels, out_channels=self.conv.out_channels,
-                              kernel_size=self.conv.kernel_size,
-                              padding=self.conv.padding, stride=self.conv.stride, dilation=self.conv.dilation,
-                              groups=self.conv.groups,
-                              bias=True)
-        self.conv.weight.data = conv_weight_hat  # fill in
-        self.conv.bias.data = conv_bias_hat
-
 
 ## original 3x3 stack filters used in UNet
 class StackEncoder(nn.Module):
@@ -123,6 +93,18 @@ class UNet1024(nn.Module):
         self.up2 = StackDecoder(64, 64, 24, kernel_size=3)  # 256
         self.up1 = StackDecoder(24, 24, 24, kernel_size=3)  # 512
         self.classify = nn.Conv2d(24, 1, kernel_size=1, padding=0, stride=1, bias=True)
+
+    def _crop_concat(self, upsampled, bypass):
+        """
+         Crop y to the (h, w) of x and concat them.
+         Used for the expansive path.
+        Returns:
+            The concatenated tensor
+        """
+        c = (bypass.size()[2] - upsampled.size()[2]) // 2
+        bypass = F.pad(bypass, (-c, -c, -c, -c))
+
+        return torch.cat((upsampled, bypass), 1)
 
     def forward(self, x):
         out = x  # ;print('x    ',x.size())

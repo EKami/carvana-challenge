@@ -19,9 +19,6 @@ class DatasetFetcher:
         self.train_files = None
         self.test_files = None
         self.train_masks_files = None
-        self.train_ids = None
-        self.masks_ids = None
-        self.test_ids = None
 
     def download_dataset(self, hq_files=True):
         """
@@ -70,23 +67,22 @@ class DatasetFetcher:
         self.train_files = sorted(os.listdir(self.train_data))
         self.test_files = sorted(os.listdir(self.test_data))
         self.train_masks_files = sorted(os.listdir(self.train_masks_data))
-        self.train_ids = list(set(t.split("_")[0] for t in self.train_files))
-        self.masks_ids = list(set(t.split("_")[0] for t in self.train_masks_files))
-        self.test_ids = list(set(t.split("_")[0] for t in self.test_files))
         return datasets_path
 
     def get_car_image_files(self, car_image_id, test_file=False, get_mask=False):
         if get_mask:
-            if car_image_id in self.masks_ids:
-                return [self.train_masks_data + "/" + s for s in self.train_masks_files if car_image_id in s]
+            if car_image_id + "_mask.gif" in self.train_masks_files:
+                return self.train_masks_data + "/" + car_image_id + "_mask.gif"
+            elif car_image_id + ".png" in self.train_masks_files:
+                return self.train_masks_data + "/" + car_image_id + ".png"
             else:
                 raise Exception("No mask with this ID found")
         elif test_file:
-            if car_image_id in self.test_ids:
-                return [self.test_data + "/" + s for s in self.test_files if car_image_id in s]
+            if car_image_id + ".jpg" in self.test_files:
+                return self.test_data + "/" + car_image_id + ".jpg"
         else:
-            if car_image_id in self.train_ids:
-                return [self.train_data + "/" + s for s in self.train_files if car_image_id in s]
+            if car_image_id + ".jpg" in self.train_files:
+                return self.train_data + "/" + car_image_id + ".jpg"
         raise Exception("No image with this ID found")
 
     def get_image_matrix(self, image_path):
@@ -101,7 +97,7 @@ class DatasetFetcher:
         """
 
         Args:
-            validation_size (int):
+            validation_size (float):
                  Value between 0 and 1
             sample_size (float, None):
                 Value between 0 and 1 or None.
@@ -112,11 +108,11 @@ class DatasetFetcher:
                 Returns the dataset in the form:
                 [train_data, train_masks_data, valid_data, valid_masks_data]
         """
-        train_ids = self.train_ids
+        train_ids = list(map(lambda img: img.split(".")[0], self.train_files))
 
         # Each id has 16 images but well...
         if sample_size:
-            rnd = np.random.choice(self.train_ids, int(len(self.train_ids) * sample_size))
+            rnd = np.random.choice(train_ids, int(len(train_ids) * sample_size))
             train_ids = rnd.ravel()
 
         if validation_size:
@@ -153,5 +149,3 @@ class DatasetFetcher:
             ret[i] = self.test_data + "/" + file
 
         return np.array(ret)
-
-

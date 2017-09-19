@@ -174,6 +174,7 @@ class CarvanaClassifier:
                    epoch_id=self.epoch_counter + 1,
                    )
 
+    @helpers.st_time(show_func_name=False)
     def predict(self, test_loader, callbacks=None):
         """
             Launch the prediction on the given loader and pass

@@ -15,74 +15,39 @@ class ConvRelu2d(nn.Module):
         return x
 
 
-class UNetOriginal(nn.Module):
-    def __init__(self, in_shape):
-        super(UNetOriginal, self).__init__()
-        channels, height, width = in_shape
+class StackEncoder(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(StackEncoder, self).__init__()
+        self.convr1 = ConvRelu2d(in_channels, out_channels, kernel_size=(3, 3), stride=1, padding=0)
+        self.convr2 = ConvRelu2d(out_channels, out_channels, kernel_size=(3, 3), stride=1, padding=0)
+        self.maxPool = nn.MaxPool2d(kernel_size=(2, 2), stride=2)
+        self.down_blueprint = None
 
-        self.down1 = nn.Sequential(
-            ConvRelu2d(channels, 64, kernel_size=(3, 3), stride=1, padding=0),
-            ConvRelu2d(64, 64, kernel_size=(3, 3), stride=1, padding=0)
-        )
+    def get_down_blueprint(self):
+        """
+            A method which returns the Tensor after the Conv/Relu operations but
+            before the maxpooling
+        Returns:
+            nn.Variable: The blueprint Tensor
+        """
+        return self.down_blueprint
 
-        self.maxPool1 = nn.MaxPool2d(kernel_size=(2, 2), stride=2)
+    def forward(self, x):
+        x = self.convr1(x)
+        x = self.convr2(x)
+        self.down_blueprint = x
+        x = self.maxPool(x)
+        return x
 
-        self.down2 = nn.Sequential(
-            ConvRelu2d(64, 128, kernel_size=(3, 3), stride=1, padding=0),
-            ConvRelu2d(128, 128, kernel_size=(3, 3), stride=1, padding=0)
-        )
 
-        self.maxPool2 = nn.MaxPool2d(kernel_size=(2, 2), stride=2)
+class StackDecoder(nn.Module):
+    def __init__(self, in_channels, out_channels, upsample_size):
+        super(StackDecoder, self).__init__()
 
-        self.down3 = nn.Sequential(
-            ConvRelu2d(128, 256, kernel_size=(3, 3), stride=1, padding=0),
-            ConvRelu2d(256, 256, kernel_size=(3, 3), stride=1, padding=0)
-        )
-
-        self.maxPool3 = nn.MaxPool2d(kernel_size=(2, 2), stride=2)
-
-        self.down4 = nn.Sequential(
-            ConvRelu2d(256, 512, kernel_size=(3, 3), stride=1, padding=0),
-            ConvRelu2d(512, 512, kernel_size=(3, 3), stride=1, padding=0)
-        )
-
-        self.maxPool4 = nn.MaxPool2d(kernel_size=(2, 2), stride=2)
-
-        self.center = nn.Sequential(
-            ConvRelu2d(512, 1024, kernel_size=(3, 3), stride=1, padding=0),
-            ConvRelu2d(1024, 1024, kernel_size=(3, 3), stride=1, padding=0)
-        )
-
-        self.upSample1 = nn.Upsample(size=(1024, 1024), scale_factor=(2, 2), mode="bilinear")
-
-        self.up1 = nn.Sequential(
-            ConvRelu2d(1024, 512, kernel_size=(3, 3), stride=1, padding=0),
-            ConvRelu2d(512, 512, kernel_size=(3, 3), stride=1, padding=0)
-        )
-
-        self.upSample2 = nn.Upsample(size=(512, 512), scale_factor=(2, 2), mode="bilinear")
-
-        self.up2 = nn.Sequential(
-            ConvRelu2d(512, 256, kernel_size=(3, 3), stride=1, padding=0),
-            ConvRelu2d(256, 256, kernel_size=(3, 3), stride=1, padding=0)
-        )
-
-        self.upSample3 = nn.Upsample(size=(256, 256), scale_factor=(2, 2), mode="bilinear")
-
-        self.up3 = nn.Sequential(
-            ConvRelu2d(256, 128, kernel_size=(3, 3), stride=1, padding=0),
-            ConvRelu2d(128, 128, kernel_size=(3, 3), stride=1, padding=0)
-        )
-
-        self.upSample4 = nn.Upsample(size=(128, 128), scale_factor=(2, 2), mode="bilinear")
-
-        self.up4 = nn.Sequential(
-            ConvRelu2d(128, 64, kernel_size=(3, 3), stride=1, padding=0),
-            ConvRelu2d(64, 64, kernel_size=(3, 3), stride=1, padding=0)
-        )
-
-        # 1x1 convolution at the last layer
-        self.output_seg_map = nn.Conv2d(64, 2, kernel_size=(1, 1), padding=0, stride=1)
+        self.upSample = nn.Upsample(size=upsample_size, scale_factor=(2, 2), mode="bilinear")
+        self.convr1 = ConvRelu2d(in_channels, out_channels, kernel_size=(3, 3), stride=1, padding=0)
+        # Crop + concat step between these 2
+        self.convr2 = ConvRelu2d(in_channels, out_channels, kernel_size=(3, 3), stride=1, padding=0)
 
     def _crop_concat(self, upsampled, bypass):
         """
@@ -96,40 +61,51 @@ class UNetOriginal(nn.Module):
 
         return torch.cat((upsampled, bypass), 1)
 
+    def forward(self, x, down_tensor):
+        x = self.upSample(x)
+        x = self.convr1(x)
+        x = self._crop_concat(x, down_tensor)
+        x = self.convr2(x)
+        return x
+
+
+class UNetOriginal(nn.Module):
+    def __init__(self, in_shape):
+        super(UNetOriginal, self).__init__()
+        channels, height, width = in_shape
+
+        self.down1 = StackEncoder(channels, 64)
+        self.down2 = StackEncoder(64, 128)
+        self.down3 = StackEncoder(128, 256)
+        self.down4 = StackEncoder(256, 512)
+
+        self.center = nn.Sequential(
+            ConvRelu2d(512, 1024, kernel_size=(3, 3), stride=1, padding=0),
+            ConvRelu2d(1024, 1024, kernel_size=(3, 3), stride=1, padding=0)
+        )
+
+        self.up1 = StackDecoder(in_channels=1024, out_channels=512, upsample_size=(56, 56))
+        self.up2 = StackDecoder(in_channels=512, out_channels=256, upsample_size=(104, 104))
+        self.up3 = StackDecoder(in_channels=256, out_channels=128, upsample_size=(200, 200))
+        self.up4 = StackDecoder(in_channels=128, out_channels=64, upsample_size=(392, 392))
+
+        # 1x1 convolution at the last layer
+        # Different from the paper is the output size here
+        self.output_seg_map = nn.Conv2d(64, 1, kernel_size=(1, 1), padding=0, stride=1)
+
     def forward(self, x):
         x = self.down1(x)  # Calls the forward() method of each layer
-        out_down1 = x
-        x = self.maxPool1(x)
-
         x = self.down2(x)
-        out_down2 = x
-        x = self.maxPool2(x)
-
         x = self.down3(x)
-        out_down3 = x
-        x = self.maxPool3(x)
-
         x = self.down4(x)
-        out_down4 = x
-        x = self.maxPool4(x)
 
         x = self.center(x)
 
-        x = self.upSample1(x)
-        x = self.up1(x)
-        self._crop_concat(x, out_down4)
-
-        x = self.upSample2(x)
-        x = self.up2(x)
-        self._crop_concat(x, out_down3)
-
-        x = self.upSample3(x)
-        x = self.up3(x)
-        self._crop_concat(x, out_down2)
-
-        x = self.upSample4(x)
-        x = self.up4(x)
-        self._crop_concat(x, out_down1)
+        x = self.up1(x, self.down4.get_down_blueprint())
+        x = self.up2(x, self.down3.get_down_blueprint())
+        x = self.up3(x, self.down2.get_down_blueprint())
+        x = self.up4(x, self.down1.get_down_blueprint())
 
         out = self.output_seg_map(x)
+        out = torch.squeeze(out, dim=1)
         return out

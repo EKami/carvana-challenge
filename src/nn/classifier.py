@@ -40,7 +40,7 @@ class CarvanaClassifier:
 
     def _validate_epoch(self, valid_loader, threshold):
         losses = tools.AverageMeter()
-        accuracies = tools.AverageMeter()
+        dice_coeffs = tools.AverageMeter()
 
         it_count = len(valid_loader)
         batch_size = valid_loader.batch_size
@@ -65,16 +65,16 @@ class CarvanaClassifier:
                 preds = (probs > threshold).float()
 
                 loss = self._criterion(logits, targets)
-                acc = losses_utils.dice_loss(preds, targets)
+                acc = losses_utils.dice_coeff(preds, targets)
                 losses.update(loss.data[0], batch_size)
-                accuracies.update(acc.data[0], batch_size)
+                dice_coeffs.update(acc.data[0], batch_size)
                 pbar.update(1)
 
-        return losses.avg, accuracies.avg, images, targets, preds
+        return losses.avg, dice_coeffs.avg, images, targets, preds
 
     def _train_epoch(self, train_loader, optimizer, threshold):
         losses = tools.AverageMeter()
-        accuracies = tools.AverageMeter()
+        dice_coeffs = tools.AverageMeter()
 
         # Total training files count / batch_size
         batch_size = train_loader.batch_size
@@ -102,15 +102,16 @@ class CarvanaClassifier:
                 optimizer.step()
 
                 # print statistics
-                acc = losses_utils.dice_loss(pred, target)
+                acc = losses_utils.dice_coeff(pred, target)
 
                 losses.update(loss.data[0], batch_size)
-                accuracies.update(acc.data[0], batch_size)
+                dice_coeffs.update(acc.data[0], batch_size)
 
                 # Update pbar
-                pbar.set_postfix(OrderedDict(loss='{0:1.5f}'.format(loss.data[0]), acc='{0:1.5f}'.format(acc.data[0])))
+                pbar.set_postfix(OrderedDict(loss='{0:1.5f}'.format(loss.data[0]),
+                                             dice_coeff='{0:1.5f}'.format(acc.data[0])))
                 pbar.update(1)
-        return losses.avg, accuracies.avg
+        return losses.avg, dice_coeffs.avg
 
     @helpers.st_time(show_func_name=False)
     def _run_epoch(self, train_loader: DataLoader, valid_loader: DataLoader,

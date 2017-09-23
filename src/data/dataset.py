@@ -7,7 +7,7 @@ import img.transformer as transformer
 
 # Reference: https://github.com/pytorch/vision/blob/master/torchvision/datasets/folder.py#L66
 class TrainImageDataset(data.Dataset):
-    def __init__(self, X_data, y_data=None, img_resize=(128, 128),
+    def __init__(self, X_data, y_data=None, input_img_resize=(128, 128), output_img_resize=(128, 128),
                  X_transform=None, y_transform=None, threshold=0.5):
         """
             A dataset loader taking images paths as argument and return
@@ -17,7 +17,8 @@ class TrainImageDataset(data.Dataset):
                 threshold (float): The threshold used to consider the mask present or not
                 X_data (list): List of paths to the training images
                 y_data (list, optional): List of paths to the target images
-                img_resize (tuple): Tuple containing the new size of the images
+                input_img_resize (tuple): Tuple containing the new size of the input images
+                output_img_resize (tuple): Tuple containing the new size of the output images
                 X_transform (callable, optional): A function/transform that takes in 2 numpy arrays.
                     Assumes X_data and y_data are not None.
                     (train_img, mask_img) and returns a transformed version with the same signature
@@ -28,7 +29,8 @@ class TrainImageDataset(data.Dataset):
         self.threshold = threshold
         self.X_train = X_data
         self.y_train_masks = y_data
-        self.img_resize = img_resize
+        self.input_img_resize = input_img_resize
+        self.output_img_resize = output_img_resize
         self.y_transform = y_transform
         self.X_transform = X_transform
 
@@ -40,12 +42,12 @@ class TrainImageDataset(data.Dataset):
                 tuple: (image, target) where target is class_index of the target class.
         """
         img = Image.open(self.X_train[index])
-        img = img.resize(self.img_resize, Image.ANTIALIAS)
+        img = img.resize(self.input_img_resize, Image.ANTIALIAS)
         img = np.asarray(img.convert("L"), dtype=np.float32)  # GreyScale
 
         # Pillow reads gifs
         mask = Image.open(self.y_train_masks[index])
-        mask = mask.resize(self.img_resize, Image.ANTIALIAS)
+        mask = mask.resize(self.output_img_resize, Image.ANTIALIAS)
         mask = np.asarray(mask.convert("L"), dtype=np.float32)  # GreyScale
 
         if self.X_transform:

@@ -23,12 +23,13 @@ def main():
     helpers.clear_logs_folder()
 
     # Hyperparameters
-    img_resize = (572, 572)
+    input_img_resize = (572, 572)  # The resize size of the input images of the neural net
+    output_img_resize = (388, 388)  # The resize size of the output images of the neural net
     batch_size = 1
     epochs = 200
     threshold = 0.5
     validation_size = 0.2
-    sample_size = 0.2  # None  # Put None to work on full dataset
+    sample_size = 0.2  # Put 'None' to work on full dataset
 
     # -- Optional parameters
     threads = cpu_count()
@@ -58,16 +59,18 @@ def main():
                                              origin_img_size, threshold)
 
     # Define our neural net architecture
-    net = unet_origin.UNetOriginal((1, *img_resize))
+    net = unet_origin.UNetOriginal((1, *input_img_resize))
     classifier = nn.classifier.CarvanaClassifier(net, epochs)
 
-    train_ds = TrainImageDataset(X_train, y_train, img_resize, X_transform=aug.augment_img)
+    train_ds = TrainImageDataset(X_train, y_train, input_img_resize, output_img_resize,
+                                 X_transform=aug.augment_img)
     train_loader = DataLoader(train_ds, batch_size,
                               sampler=RandomSampler(train_ds),
                               num_workers=threads,
                               pin_memory=use_cuda)
 
-    valid_ds = TrainImageDataset(X_valid, y_valid, img_resize, threshold=threshold)
+    valid_ds = TrainImageDataset(X_valid, y_valid, input_img_resize, output_img_resize,
+                                 threshold=threshold)
     valid_loader = DataLoader(valid_ds, batch_size,
                               sampler=SequentialSampler(valid_ds),
                               num_workers=threads,
@@ -79,7 +82,7 @@ def main():
     # Train the classifier
     classifier.train(train_loader, valid_loader, epochs, callbacks=[tb_viz_cb, tb_logs_cb, model_saver_cb])
 
-    test_ds = TestImageDataset(full_x_test, img_resize)
+    test_ds = TestImageDataset(full_x_test, input_img_resize)
     test_loader = DataLoader(test_ds, batch_size,
                              sampler=SequentialSampler(test_ds),
                              num_workers=threads,

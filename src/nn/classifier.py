@@ -115,7 +115,7 @@ class CarvanaClassifier:
 
     @helpers.st_time(show_func_name=False)
     def _run_epoch(self, train_loader: DataLoader, valid_loader: DataLoader,
-                   optimizer, lr_scheduler, threshold=0.5, callbacks=None):
+                   optimizer, threshold=0.5, callbacks=None):
         # switch to train mode
         self.net.train()
 
@@ -127,9 +127,6 @@ class CarvanaClassifier:
 
         # Run the validation pass
         val_loss, val_acc, last_images, last_targets, last_preds = self._validate_epoch(valid_loader, threshold)
-
-        # Reduce learning rate if needed
-        lr_scheduler.step(val_loss, self.epoch_counter)
 
         # If there are callback call their __call__ method and pass in some arguments
         if callbacks:
@@ -161,11 +158,10 @@ class CarvanaClassifier:
         """
         if self.use_cuda:
             self.net.cuda()
-        optimizer = optim.SGD(self.net.parameters(), lr=0.01, momentum=0.99)
-        lr_scheduler = ReduceLROnPlateau(optimizer, 'min', patience=2, verbose=True, min_lr=1e-7)
-
+        #optimizer = optim.SGD(self.net.parameters(), lr=0.01, momentum=0.99)
+        optimizer = optim.Adam(self.net.parameters())
         for epoch in range(epochs):
-            self._run_epoch(train_loader, valid_loader, optimizer, lr_scheduler, threshold, callbacks)
+            self._run_epoch(train_loader, valid_loader, optimizer, threshold, callbacks)
 
         # If there are callback call their __call__ method and pass in some arguments
         if callbacks:

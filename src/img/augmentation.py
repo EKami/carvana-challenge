@@ -2,21 +2,15 @@ import cv2
 import numpy as np
 
 
-def random_shift_scale_rotate(image, mask,
-                              shift_limit=(-0.0625, 0.0625),
-                              scale_limit=(-0.1, 0.1),
-                              rotate_limit=(-45, 45), aspect_limit=(0, 0),
+def random_shift_scale_rotate(image, angle, scale, aspect, shift_dx, shift_dy,
                               borderMode=cv2.BORDER_CONSTANT, u=0.5):
     if np.random.random() < u:
         height, width = image.shape
 
-        angle = np.random.uniform(rotate_limit[0], rotate_limit[1])  # degree
-        scale = np.random.uniform(1 + scale_limit[0], 1 + scale_limit[1])
-        aspect = np.random.uniform(1 + aspect_limit[0], 1 + aspect_limit[1])
         sx = scale * aspect / (aspect ** 0.5)
         sy = scale / (aspect ** 0.5)
-        dx = round(np.random.uniform(shift_limit[0], shift_limit[1]) * width)
-        dy = round(np.random.uniform(shift_limit[0], shift_limit[1]) * height)
+        dx = round(shift_dx * width)
+        dy = round(shift_dy * height)
 
         cc = np.math.cos(angle / 180 * np.math.pi) * sx
         ss = np.math.sin(angle / 180 * np.math.pi) * sy
@@ -29,16 +23,9 @@ def random_shift_scale_rotate(image, mask,
         box0 = box0.astype(np.float32)
         box1 = box1.astype(np.float32)
         mat = cv2.getPerspectiveTransform(box0, box1)
-        image = cv2.warpPerspective(image, mat, (width, height), flags=cv2.INTER_LINEAR, borderMode=borderMode,
-                                    borderValue=(
-                                        0, 0,
-                                        0,))
-        mask = cv2.warpPerspective(mask, mat, (width, height), flags=cv2.INTER_LINEAR, borderMode=borderMode,
-                                   borderValue=(
-                                       0, 0,
-                                       0,))
-
-    return image, mask
+        image = cv2.warpPerspective(image, mat, (width, height), flags=cv2.INTER_LINEAR,
+                                    borderMode=borderMode, borderValue=(0, 0, 0,))
+    return image
 
 
 def random_horizontal_flip(image, mask, u=0.5):
@@ -50,9 +37,18 @@ def random_horizontal_flip(image, mask, u=0.5):
 
 
 def augment_img(img, mask):
-    img, mask = random_shift_scale_rotate(img, mask,
-                                          shift_limit=(-0.0625, 0.0625),
-                                          scale_limit=(-0.1, 0.1),
-                                          rotate_limit=(-0, 0))
+    rotate_limit = (-45, 45)
+    aspect_limit = (0, 0)
+    scale_limit = (-0.1, 0.1)
+    shift_limit = (-0.0625, 0.0625)
+    shift_dx = np.random.uniform(shift_limit[0], shift_limit[1])
+    shift_dy = np.random.uniform(shift_limit[0], shift_limit[1])
+    angle = np.random.uniform(rotate_limit[0], rotate_limit[1])  # degree
+    scale = np.random.uniform(1 + scale_limit[0], 1 + scale_limit[1])
+    aspect = np.random.uniform(1 + aspect_limit[0], 1 + aspect_limit[1])
+
+    img = random_shift_scale_rotate(img, angle, scale, aspect, shift_dx, shift_dy)
+    mask = random_shift_scale_rotate(mask, angle, scale, aspect, shift_dx, shift_dy)
+
     img, mask = random_horizontal_flip(img, mask)
     return img, mask

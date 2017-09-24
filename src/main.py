@@ -16,6 +16,7 @@ import os
 from multiprocessing import cpu_count
 
 from data.dataset import TrainImageDataset, TestImageDataset
+import multiprocessing
 
 
 def main():
@@ -25,11 +26,11 @@ def main():
     # Hyperparameters
     input_img_resize = (572, 572)  # The resize size of the input images of the neural net
     output_img_resize = (388, 388)  # The resize size of the output images of the neural net
-    batch_size = 1
-    epochs = 200
+    batch_size = 3
+    epochs = 50
     threshold = 0.5
     validation_size = 0.2
-    sample_size = 0.2  # Put 'None' to work on full dataset
+    sample_size = None  # Put 'None' to work on full dataset
 
     # -- Optional parameters
     threads = cpu_count()
@@ -58,8 +59,10 @@ def main():
     pred_saver_cb = PredictionsSaverCallback(os.path.join(script_dir, '../output/submit.csv.gz'),
                                              origin_img_size, threshold)
 
-    # Define our neural net architecture
-    net = unet_origin.UNetOriginal((1, *input_img_resize))
+    # -- Define our neural net architecture
+    # The original paper has 1 input channel,
+    # in our case we have 3 (RGB)
+    net = unet_origin.UNetOriginal((3, *input_img_resize))
     classifier = nn.classifier.CarvanaClassifier(net, epochs)
 
     train_ds = TrainImageDataset(X_train, y_train, input_img_resize, output_img_resize,
@@ -94,4 +97,6 @@ def main():
 
 
 if __name__ == "__main__":
+    # Workaround for a deadlock issue on Pytorch 0.2.0: https://github.com/pytorch/pytorch/issues/1838
+    multiprocessing.set_start_method('spawn', force=True)
     main()

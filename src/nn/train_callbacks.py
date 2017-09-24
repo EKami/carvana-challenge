@@ -44,6 +44,7 @@ class TensorboardVisualizerCallback(Callback):
         """
 
         H, W, C = image.shape
+        mask = cv2.resize(mask, (H, W))
         results = np.zeros((H, 3 * W, 3), np.uint8)
         p = np.zeros((H * W, 3), np.uint8)
 
@@ -79,11 +80,6 @@ class TensorboardVisualizerCallback(Callback):
             image = np.transpose(image, (1, 2, 0))  # Invert c, h, w to h, w, c
             target_mask = target_mask.float().data.cpu().numpy().astype(np.uint8)
             pred_mask = pred_mask.float().data.cpu().numpy().astype(np.uint8)
-            if image.shape[0] > 256:  # We don't want the images on tensorboard to be too large
-                image = scipy.imresize(image, (256, 256))
-                target_mask = scipy.imresize(target_mask, (256, 256))
-                pred_mask = scipy.imresize(pred_mask, (256, 256))
-
             expected_result = self._get_mask_representation(image, target_mask)
             pred_result = self._get_mask_representation(image, pred_mask)
             writer.add_image("Epoch_" + str(epoch_id) + '-Image_' + str(i + 1) + '-Expected', expected_result, epoch_id)

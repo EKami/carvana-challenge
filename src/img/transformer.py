@@ -15,7 +15,7 @@ def image_to_tensor(image, mean=0, std=1.):
     """
     image = image.astype(np.float32)
     image = (image - mean) / std
-    image = image.reshape((1, *image.shape))  # Adds the channel axis
+    image = image.transpose((2, 0, 1))
     tensor = torch.from_numpy(image)
     return tensor
 

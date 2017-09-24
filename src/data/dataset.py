@@ -43,12 +43,12 @@ class TrainImageDataset(data.Dataset):
         """
         img = Image.open(self.X_train[index])
         img = img.resize(self.input_img_resize, Image.ANTIALIAS)
-        img = np.asarray(img.convert("L"), dtype=np.float32)  # GreyScale
+        img = np.asarray(img.convert("RGB"), dtype=np.float32)
 
         # Pillow reads gifs
         mask = Image.open(self.y_train_masks[index])
         mask = mask.resize(self.output_img_resize, Image.ANTIALIAS)
-        mask = np.asarray(mask.convert("L"), dtype=np.float32)  # GreyScale
+        mask = np.asarray(mask.convert("L"), dtype=np.float32)  # GrayScale
 
         if self.X_transform:
             img, mask = self.X_transform(img, mask)
@@ -58,7 +58,7 @@ class TrainImageDataset(data.Dataset):
 
         img = transformer.image_to_tensor(img)
         mask = transformer.mask_to_tensor(mask, self.threshold)
-        return img, mask  # They are both returned as grey scale in our case
+        return img, mask
 
     def __len__(self):
         assert len(self.X_train) == len(self.y_train_masks)
@@ -87,7 +87,7 @@ class TestImageDataset(data.Dataset):
         img_path = self.X_train[index]
         img = Image.open(img_path)
         img = img.resize(self.img_resize, Image.ANTIALIAS)
-        img = np.asarray(img.convert("L"), dtype=np.float32)  # GreyScale
+        img = np.asarray(img.convert("RGB"), dtype=np.float32)
 
         img = transformer.image_to_tensor(img)
         return img, img_path.split("/")[-1]

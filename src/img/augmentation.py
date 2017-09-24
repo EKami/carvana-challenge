@@ -5,7 +5,10 @@ import numpy as np
 def random_shift_scale_rotate(image, angle, scale, aspect, shift_dx, shift_dy,
                               borderMode=cv2.BORDER_CONSTANT, u=0.5):
     if np.random.random() < u:
-        height, width = image.shape
+        if len(image.shape) == 3:  # Img or mask
+            height, width, channels = image.shape
+        else:
+            height, width = image.shape
 
         sx = scale * aspect / (aspect ** 0.5)
         sy = scale / (aspect ** 0.5)
@@ -23,8 +26,10 @@ def random_shift_scale_rotate(image, angle, scale, aspect, shift_dx, shift_dy,
         box0 = box0.astype(np.float32)
         box1 = box1.astype(np.float32)
         mat = cv2.getPerspectiveTransform(box0, box1)
+
+        # TODO This one is shit, it hang
         image = cv2.warpPerspective(image, mat, (width, height), flags=cv2.INTER_LINEAR,
-                                    borderMode=borderMode, borderValue=(0, 0, 0,))
+                                    borderMode=borderMode, borderValue=(0, 0, 0, 0))
     return image
 
 

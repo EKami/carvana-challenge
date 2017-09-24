@@ -20,9 +20,6 @@ import multiprocessing
 
 
 def main():
-    # Clear log dir first
-    helpers.clear_logs_folder()
-
     # Hyperparameters
     input_img_resize = (572, 572)  # The resize size of the input images of the neural net
     output_img_resize = (388, 388)  # The resize size of the output images of the neural net

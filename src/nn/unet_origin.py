@@ -3,9 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class ConvRelu2d(nn.Module):
+class ConvBnRelu(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, padding, stride):
-        super(ConvRelu2d, self).__init__()
+        super(ConvBnRelu, self).__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding, stride=stride)
         self.bn = nn.BatchNorm2d(out_channels)
         self.relu = nn.ReLU()
@@ -20,8 +20,8 @@ class ConvRelu2d(nn.Module):
 class StackEncoder(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(StackEncoder, self).__init__()
-        self.convr1 = ConvRelu2d(in_channels, out_channels, kernel_size=(3, 3), stride=1, padding=0)
-        self.convr2 = ConvRelu2d(out_channels, out_channels, kernel_size=(3, 3), stride=1, padding=0)
+        self.convr1 = ConvBnRelu(in_channels, out_channels, kernel_size=(3, 3), stride=1, padding=0)
+        self.convr2 = ConvBnRelu(out_channels, out_channels, kernel_size=(3, 3), stride=1, padding=0)
         self.maxPool = nn.MaxPool2d(kernel_size=(2, 2), stride=2)
         self.down_blueprint = None
 
@@ -47,9 +47,9 @@ class StackDecoder(nn.Module):
         super(StackDecoder, self).__init__()
 
         self.upSample = nn.Upsample(size=upsample_size, scale_factor=(2, 2), mode="bilinear")
-        self.convr1 = ConvRelu2d(in_channels, out_channels, kernel_size=(3, 3), stride=1, padding=0)
+        self.convr1 = ConvBnRelu(in_channels, out_channels, kernel_size=(3, 3), stride=1, padding=0)
         # Crop + concat step between these 2
-        self.convr2 = ConvRelu2d(in_channels, out_channels, kernel_size=(3, 3), stride=1, padding=0)
+        self.convr2 = ConvBnRelu(in_channels, out_channels, kernel_size=(3, 3), stride=1, padding=0)
 
     def _crop_concat(self, upsampled, bypass):
         """
@@ -82,8 +82,8 @@ class UNetOriginal(nn.Module):
         self.down4 = StackEncoder(256, 512)
 
         self.center = nn.Sequential(
-            ConvRelu2d(512, 1024, kernel_size=(3, 3), stride=1, padding=0),
-            ConvRelu2d(1024, 1024, kernel_size=(3, 3), stride=1, padding=0)
+            ConvBnRelu(512, 1024, kernel_size=(3, 3), stride=1, padding=0),
+            ConvBnRelu(1024, 1024, kernel_size=(3, 3), stride=1, padding=0)
         )
 
         self.up1 = StackDecoder(in_channels=1024, out_channels=512, upsample_size=(56, 56))

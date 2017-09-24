@@ -3,7 +3,6 @@ import torch.optim as optim
 from torch.autograd import Variable
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
-from torch.optim.lr_scheduler import ReduceLROnPlateau
 import nn.tools as tools
 from tqdm import tqdm
 from collections import OrderedDict
@@ -35,7 +34,8 @@ class CarvanaClassifier:
         self.net.load_state_dict(torch.load(model_path))
 
     def _criterion(self, logits, labels):
-        l = losses_utils.BCELoss2d().forward(logits, labels) + losses_utils.SoftDiceLoss().forward(logits, labels)
+        l = losses_utils.BinaryCrossEntropyLoss2d().forward(logits, labels) + \
+            losses_utils.SoftDiceLoss().forward(logits, labels)
         return l
 
     def _validate_epoch(self, valid_loader, threshold):

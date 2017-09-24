@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class BCELoss2d(nn.Module):
+class BinaryCrossEntropyLoss2d(nn.Module):
     def __init__(self, weight=None, size_average=True):
         """
         Binary cross entropy loss 2D
@@ -10,7 +10,7 @@ class BCELoss2d(nn.Module):
             weight:
             size_average:
         """
-        super(BCELoss2d, self).__init__()
+        super(BinaryCrossEntropyLoss2d, self).__init__()
         self.bce_loss = nn.BCELoss(weight, size_average)
 
     def forward(self, logits, targets):

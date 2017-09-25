@@ -23,23 +23,13 @@ class StackEncoder(nn.Module):
         self.convr1 = ConvBnRelu(in_channels, out_channels, kernel_size=(3, 3), stride=1, padding=0)
         self.convr2 = ConvBnRelu(out_channels, out_channels, kernel_size=(3, 3), stride=1, padding=0)
         self.maxPool = nn.MaxPool2d(kernel_size=(2, 2), stride=2)
-        self.down_blueprint = None
-
-    def get_down_blueprint(self):
-        """
-            A method which returns the Tensor after the Conv/Relu operations but
-            before the maxpooling
-        Returns:
-            nn.Variable: The blueprint Tensor
-        """
-        return self.down_blueprint
 
     def forward(self, x):
         x = self.convr1(x)
         x = self.convr2(x)
-        self.down_blueprint = x
+        x_small = x
         x = self.maxPool(x)
-        return x
+        return x, x_small
 
 
 class StackDecoder(nn.Module):
@@ -96,17 +86,17 @@ class UNetOriginal(nn.Module):
         self.output_seg_map = nn.Conv2d(64, 1, kernel_size=(1, 1), padding=0, stride=1)
 
     def forward(self, x):
-        x = self.down1(x)  # Calls the forward() method of each layer
-        x = self.down2(x)
-        x = self.down3(x)
-        x = self.down4(x)
+        x, x_small1 = self.down1(x)  # Calls the forward() method of each layer
+        x, x_small2 = self.down2(x)
+        x, x_small3 = self.down3(x)
+        x, x_small4 = self.down4(x)
 
         x = self.center(x)
 
-        x = self.up1(x, self.down4.get_down_blueprint())
-        x = self.up2(x, self.down3.get_down_blueprint())
-        x = self.up3(x, self.down2.get_down_blueprint())
-        x = self.up4(x, self.down1.get_down_blueprint())
+        x = self.up1(x, x_small4)
+        x = self.up2(x, x_small3)
+        x = self.up3(x, x_small2)
+        x = self.up4(x, x_small1)
 
         out = self.output_seg_map(x)
         out = torch.squeeze(out, dim=1)

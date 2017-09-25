@@ -138,8 +138,8 @@ class CarvanaClassifier:
                    train_loss=train_loss, train_acc=train_acc,
                    val_loss=val_loss, val_acc=val_acc
                    )
-        print("train_loss = {:03f}, train_acc = {:03f}\n"
-              "val_loss   = {:03f}, val_acc   = {:03f}"
+        print("train_loss = {:03f}, train_dice_coeff = {:03f}\n"
+              "val_loss   = {:03f}, val_dice_coeff   = {:03f}"
               .format(train_loss, train_acc, val_loss, val_acc))
         self.epoch_counter += 1
 
@@ -158,8 +158,7 @@ class CarvanaClassifier:
         """
         if self.use_cuda:
             self.net.cuda()
-        #optimizer = optim.SGD(self.net.parameters(), lr=1e-3, momentum=0.99)
-        optimizer = optim.Adam(self.net.parameters())
+        optimizer = optim.SGD(self.net.parameters(), lr=0.01, momentum=0.99, weight_decay=0.0005)
         for epoch in range(epochs):
             self._run_epoch(train_loader, valid_loader, optimizer, threshold, callbacks)
 

@@ -1,5 +1,6 @@
 import nn.classifier
 import nn.unet_origin as unet_origin
+import nn.unet as unet_custom
 import helpers
 
 import torch

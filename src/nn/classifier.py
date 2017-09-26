@@ -34,9 +34,8 @@ class CarvanaClassifier:
         self.net.load_state_dict(torch.load(model_path))
 
     def _criterion(self, logits, labels):
-        l = losses_utils.BinaryCrossEntropyLoss2d().forward(logits, labels) + \
+        return losses_utils.BinaryCrossEntropyLoss2d().forward(logits, labels) + \
             losses_utils.SoftDiceLoss().forward(logits, labels)
-        return l
 
     def _validate_epoch(self, valid_loader, threshold):
         losses = tools.AverageMeter()

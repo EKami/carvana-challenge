@@ -27,9 +27,9 @@ class StackEncoder(nn.Module):
     def forward(self, x):
         x = self.convr1(x)
         x = self.convr2(x)
-        x_small = x
+        x_trace = x
         x = self.maxPool(x)
-        return x, x_small
+        return x, x_trace
 
 
 class StackDecoder(nn.Module):
@@ -86,17 +86,17 @@ class UNetOriginal(nn.Module):
         self.output_seg_map = nn.Conv2d(64, 1, kernel_size=(1, 1), padding=0, stride=1)
 
     def forward(self, x):
-        x, x_small1 = self.down1(x)  # Calls the forward() method of each layer
-        x, x_small2 = self.down2(x)
-        x, x_small3 = self.down3(x)
-        x, x_small4 = self.down4(x)
+        x, x_trace1 = self.down1(x)  # Calls the forward() method of each layer
+        x, x_trace2 = self.down2(x)
+        x, x_trace3 = self.down3(x)
+        x, x_trace4 = self.down4(x)
 
         x = self.center(x)
 
-        x = self.up1(x, x_small4)
-        x = self.up2(x, x_small3)
-        x = self.up3(x, x_small2)
-        x = self.up4(x, x_small1)
+        x = self.up1(x, x_trace4)
+        x = self.up2(x, x_trace3)
+        x = self.up3(x, x_trace2)
+        x = self.up4(x, x_trace1)
 
         out = self.output_seg_map(x)
         out = torch.squeeze(out, dim=1)

@@ -24,6 +24,8 @@ def main():
     # Hyperparameters
     input_img_resize = (572, 572)  # The resize size of the input images of the neural net
     output_img_resize = (388, 388)  # The resize size of the output images of the neural net
+    # input_img_resize = (1024, 1024)
+    # output_img_resize = (1024, 1024)
     batch_size = 3
     epochs = 50
     threshold = 0.5
@@ -60,6 +62,7 @@ def main():
     # -- Define our neural net architecture
     # The original paper has 1 input channel,
     # in our case we have 3 (RGB)
+    #net = unet_custom.UNet1024((3, *input_img_resize))
     net = unet_origin.UNetOriginal((3, *input_img_resize))
     classifier = nn.classifier.CarvanaClassifier(net, epochs)
 

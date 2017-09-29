@@ -27,16 +27,6 @@ class StackEncoder(nn.Module):
             ConvBnRelu2d(x_channels, y_channels, kernel_size=kernel_size, padding=padding),
             ConvBnRelu2d(y_channels, y_channels, kernel_size=kernel_size, padding=padding),
         )
-        self.down_blueprint = None
-
-    def get_down_blueprint(self):
-        """
-            A method which returns the Tensor after the Conv/Relu operations but
-            before the maxpooling
-        Returns:
-            nn.Variable: The blueprint Tensor
-        """
-        return self.down_blueprint
 
     def forward(self, x):
         x = self.encode(x)
@@ -56,7 +46,7 @@ class StackDecoder(nn.Module):
         )
 
     def forward(self, x, down_tensor):
-        N, channels, height, width = down_tensor.size()
+        _, channels, height, width = down_tensor.size()
         x = F.upsample(x, size=(height, width), mode='bilinear')
         x = torch.cat([x, down_tensor], 1)
         x = self.decode(x)
@@ -100,14 +90,13 @@ class UNet1024(nn.Module):
         down5, out = self.down5(out)
         down6, out = self.down6(out)
 
-        # TODO check why he reuse `out`
         out = self.center(out)
-        out = self.up6(down6, out)
-        out = self.up5(down5, out)
-        out = self.up4(down4, out)
-        out = self.up3(down3, out)
-        out = self.up2(down2, out)
-        out = self.up1(down1, out)
+        out = self.up6(out, down6)
+        out = self.up5(out, down5)
+        out = self.up4(out, down4)
+        out = self.up3(out, down3)
+        out = self.up2(out, down2)
+        out = self.up1(out, down1)
 
         out = self.classify(out)
         out = torch.squeeze(out, dim=1)

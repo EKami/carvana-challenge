@@ -19,7 +19,7 @@ class SoftDiceLoss(nn.Module):
 
     def forward(self, logits, targets):
         probs = F.sigmoid(logits)
-        num = targets.size(0)
+        num = targets.size(0)  # Number of batches
 
         score = dice_coeff(probs, targets)
         score = 1 - score.sum() / num

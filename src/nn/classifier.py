@@ -157,7 +157,7 @@ class CarvanaClassifier:
         """
         if self.use_cuda:
             self.net.cuda()
-        optimizer = optim.SGD(self.net.parameters(), lr=0.01, momentum=0.99, weight_decay=0.0005)
+        optimizer = optim.SGD(self.net.parameters(), lr=0.01, momentum=0.99)
         for epoch in range(epochs):
             self._run_epoch(train_loader, valid_loader, optimizer, threshold, callbacks)
 

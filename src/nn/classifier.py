@@ -119,13 +119,14 @@ class CarvanaClassifier:
         self.net.train()
 
         # Run a train pass on the current epoch
-        train_loss, train_acc = self._train_epoch(train_loader, optimizer, threshold)
+        train_loss, train_dice_coeff = self._train_epoch(train_loader, optimizer, threshold)
 
         # switch to evaluate mode
         self.net.eval()
 
         # Run the validation pass
-        val_loss, val_acc, last_images, last_targets, last_preds = self._validate_epoch(valid_loader, threshold)
+        val_loss, val_dice_coeff, last_images, last_targets, last_preds = \
+            self._validate_epoch(valid_loader, threshold)
 
         # If there are callback call their __call__ method and pass in some arguments
         if callbacks:
@@ -134,12 +135,12 @@ class CarvanaClassifier:
                    net=self.net,
                    last_val_batch=(last_images, last_targets, last_preds),
                    epoch_id=self.epoch_counter + 1,
-                   train_loss=train_loss, train_acc=train_acc,
-                   val_loss=val_loss, val_acc=val_acc
+                   train_loss=train_loss, train_dice_coeff=train_dice_coeff,
+                   val_loss=val_loss, val_dice_coeff=val_dice_coeff
                    )
         print("train_loss = {:03f}, train_dice_coeff = {:03f}\n"
               "val_loss   = {:03f}, val_dice_coeff   = {:03f}"
-              .format(train_loss, train_acc, val_loss, val_acc))
+              .format(train_loss, train_dice_coeff, val_loss, val_dice_coeff))
         self.epoch_counter += 1
 
     def train(self, train_loader: DataLoader, valid_loader: DataLoader,
@@ -157,6 +158,7 @@ class CarvanaClassifier:
         """
         if self.use_cuda:
             self.net.cuda()
+        #optimizer = optim.RMSprop(self.net.parameters(), lr=0.0002)
         optimizer = optim.SGD(self.net.parameters(), lr=0.01, momentum=0.99)
         for epoch in range(epochs):
             self._run_epoch(train_loader, valid_loader, optimizer, threshold, callbacks)

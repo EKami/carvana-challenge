@@ -30,7 +30,7 @@ def main():
     epochs = 50
     threshold = 0.5
     validation_size = 0.2
-    sample_size = None  # Put 'None' to work on full dataset
+    sample_size = None  # Put 'None' to work on full dataset or a value between 0 and 1
 
     # -- Optional parameters
     threads = cpu_count()

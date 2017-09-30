@@ -109,9 +109,9 @@ class TensorboardLoggerCallback(Callback):
 
         writer = SummaryWriter(self.path_to_files)
         writer.add_scalar('data/train_loss', kwargs['train_loss'], epoch_id)
-        writer.add_scalar('data/train_acc', kwargs['train_acc'], epoch_id)
+        writer.add_scalar('data/train_dice_coeff', kwargs['train_dice_coeff'], epoch_id)
         writer.add_scalar('data/val_loss', kwargs['val_loss'], epoch_id)
-        writer.add_scalar('data/val_acc', kwargs['val_acc'], epoch_id)
+        writer.add_scalar('data/val_dice_coeff', kwargs['val_dice_coeff'], epoch_id)
         writer.close()
 
 

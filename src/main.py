@@ -1,6 +1,7 @@
 import nn.classifier
 import nn.unet_origin as unet_origin
 import nn.unet as unet_custom
+import torch.optim as optim
 import helpers
 
 import torch
@@ -65,6 +66,8 @@ def main():
     #net = unet_custom.UNet1024((3, *input_img_resize))
     net = unet_origin.UNetOriginal((3, *input_img_resize))
     classifier = nn.classifier.CarvanaClassifier(net, epochs)
+    # optimizer = optim.RMSprop(net.parameters(), lr=0.0002)
+    optimizer = optim.SGD(net.parameters(), lr=0.01, momentum=0.99)
 
     train_ds = TrainImageDataset(X_train, y_train, input_img_resize, output_img_resize,
                                  X_transform=aug.augment_img)
@@ -84,7 +87,8 @@ def main():
           .format(len(train_loader.dataset), len(valid_loader.dataset)))
 
     # Train the classifier
-    classifier.train(train_loader, valid_loader, epochs, callbacks=[tb_viz_cb, tb_logs_cb, model_saver_cb])
+    classifier.train(train_loader, valid_loader, optimizer,
+                     epochs, callbacks=[tb_viz_cb, tb_logs_cb, model_saver_cb])
 
     test_ds = TestImageDataset(full_x_test, input_img_resize)
     test_loader = DataLoader(test_ds, batch_size,

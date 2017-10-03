@@ -1,5 +1,4 @@
 import torch
-import torch.optim as optim
 from torch.autograd import Variable
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
@@ -144,12 +143,13 @@ class CarvanaClassifier:
         self.epoch_counter += 1
 
     def train(self, train_loader: DataLoader, valid_loader: DataLoader,
-              epochs, threshold=0.5, callbacks=None):
+              optimizer, epochs, threshold=0.5, callbacks=None):
         """
             Trains the neural net
         Args:
             train_loader (DataLoader): The Dataloader for training
             valid_loader (DataLoader): The Dataloader for validation
+            optimizer (Optimizer): The nn optimizer
             epochs (int): number of epochs
             threshold (float): The threshold used to consider the mask present or not
             callbacks (list): List of callbacks functions to call at each epoch
@@ -158,8 +158,7 @@ class CarvanaClassifier:
         """
         if self.use_cuda:
             self.net.cuda()
-        #optimizer = optim.RMSprop(self.net.parameters(), lr=0.0002)
-        optimizer = optim.SGD(self.net.parameters(), lr=0.01, momentum=0.99)
+
         for epoch in range(epochs):
             self._run_epoch(train_loader, valid_loader, optimizer, threshold, callbacks)
 

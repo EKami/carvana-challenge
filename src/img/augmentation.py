@@ -122,7 +122,7 @@ def augment_img(img, mask):
     img, mask = random_shift_scale_rotate(img, mask,
                                           shift_limit=(-0.0625, 0.0625),
                                           scale_limit=(-0.1, 0.1),
-                                          rotate_limit=(-0, 0))
+                                          rotate_limit=(-15, 15))
     img, mask = random_horizontal_flip(img, mask)
     # img = random_channel_shift(img, limit=0.05)
     # img = random_brightness(img, limit=(-0.5, 0.5), u=0.5)
